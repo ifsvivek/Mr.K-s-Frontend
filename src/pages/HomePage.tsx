@@ -1,3 +1,4 @@
+// Imports
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
@@ -5,8 +6,29 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Player } from "@lottiefiles/react-lottie-player";
 import CountUp from "react-countup";
 import { useInView } from "react-intersection-observer";
+import { useSwipeable } from "react-swipeable";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
-// Fade-up animation variants
+import {
+  Rocket,
+  Eye,
+  FileText,
+  Palette,
+  BadgeDollarSign,
+  Download,
+} from "lucide-react";
+import React from "react";
+
+const featureIcons = [
+  Rocket,
+  Eye,
+  FileText,
+  Palette,
+  BadgeDollarSign,
+  Download,
+];
+
+// Animation Variants
 const fadeUp = {
   hidden: { opacity: 0, y: 30 },
   visible: (i = 1) => ({
@@ -35,11 +57,9 @@ const containerVariants = {
 
 const HomePage = () => {
   const { ref, inView } = useInView({ triggerOnce: true });
-
-  // State to manage dark mode
+  
   const [darkMode, setDarkMode] = useState<boolean>(false);
 
-  // Check if dark mode preference is already stored in localStorage
   useEffect(() => {
     const savedMode = localStorage.getItem("theme");
     if (savedMode) {
@@ -49,14 +69,6 @@ const HomePage = () => {
     }
   }, []);
 
-  // Toggle dark mode and save the choice to localStorage
-  const toggleDarkMode = () => {
-    const newMode = !darkMode;
-    setDarkMode(newMode);
-    localStorage.setItem("theme", newMode ? "dark" : "light");
-  };
-
-  // Apply dark mode class
   useEffect(() => {
     if (darkMode) {
       document.documentElement.classList.add("dark");
@@ -65,7 +77,12 @@ const HomePage = () => {
     }
   }, [darkMode]);
 
-  // FAQ Data
+  const toggleDarkMode = () => {
+    const newMode = !darkMode;
+    setDarkMode(newMode);
+    localStorage.setItem("theme", newMode ? "dark" : "light");
+  };
+
   const faqData = [
     {
       q: "What is Mr.K's CV?",
@@ -89,8 +106,51 @@ const HomePage = () => {
     },
   ];
 
-  // Accordion Item Component
-  const AccordionItem = ({ question, answer, index }: { question: string; answer: string; index: number }) => {
+  const testimonials = [
+    {
+      name: "Anjali S.",
+      feedback:
+        "This is the best resume builder I’ve used. Clean UI and easy to use!",
+      avatar: "https://randomuser.me/api/portraits/women/65.jpg",
+    },
+    {
+      name: "Ravi K.",
+      feedback:
+        "Helped me get my dream job. I loved the customization options.",
+      avatar: "https://randomuser.me/api/portraits/men/75.jpg",
+    },
+    {
+      name: "Meena J.",
+      feedback: "Saves so much time. The real-time preview is a game changer.",
+      avatar: "https://randomuser.me/api/portraits/women/44.jpg",
+    },
+  ];
+
+  const [index, setIndex] = useState(0);
+
+  useEffect(() => {
+    const interval = setInterval(
+      () => setIndex((i) => (i + 1) % testimonials.length),
+      5000
+    );
+    return () => clearInterval(interval);
+  }, []);
+
+  const handlers = useSwipeable({
+    onSwipedLeft: () => setIndex((i) => (i + 1) % testimonials.length),
+    onSwipedRight: () =>
+      setIndex((i) => (i - 1 + testimonials.length) % testimonials.length),
+  });
+
+  const AccordionItem = ({
+    question,
+    answer,
+    index,
+  }: {
+    question: string;
+    answer: string;
+    index: number;
+  }) => {
     const [isOpen, setIsOpen] = useState(false);
 
     return (
@@ -146,31 +206,28 @@ const HomePage = () => {
           className="relative flex flex-col items-center gap-6 py-12 text-center md:py-20 overflow-hidden"
           variants={fadeUp}
         >
-          {/* Animated blob background */}
           <motion.div
             className="absolute -top-20 left-1/2 h-[400px] w-[400px] bg-gradient-to-r from-purple-500 via-pink-500 to-red-500 opacity-20 blur-3xl rounded-full -z-10"
             animate={{ scale: [1, 1.1, 1], rotate: [0, 15, -15, 0] }}
             transition={{ repeat: Infinity, duration: 10, ease: "easeInOut" }}
           />
-
           <motion.h1
             className="text-4xl font-extrabold tracking-tight sm:text-5xl md:text-6xl"
             variants={fadeUp}
             custom={1}
           >
-            Build a job-winning <span className="text-primary">resume</span> for free
+            Build a job-winning <span className="text-primary">resume</span> for
+            free
           </motion.h1>
-
           <motion.p
             className="max-w-[700px] text-lg text-muted-foreground md:text-xl"
             variants={fadeUp}
             custom={2}
           >
-            Create professional resumes in minutes with our ultra-fast, free resume builder.
-            No hidden fees, no watermarks, just pure performance.
+            Create professional resumes in minutes with our ultra-fast, free
+            resume builder. No hidden fees, no watermarks, just pure
+            performance.
           </motion.p>
-
-          {/* Lottie Animation */}
           <motion.div variants={fadeUp} custom={2}>
             <Player
               autoplay
@@ -180,14 +237,16 @@ const HomePage = () => {
               className="mx-auto"
             />
           </motion.div>
-
           <motion.div
             className="flex flex-col gap-4 sm:flex-row"
             variants={fadeUp}
             custom={3}
           >
             <Link to="/editor">
-              <Button size="lg" className="transition-transform duration-300 hover:scale-[1.07]">
+              <Button
+                size="lg"
+                className="transition-transform duration-300 hover:scale-[1.07]"
+              >
                 Create Your Resume
               </Button>
             </Link>
@@ -203,7 +262,7 @@ const HomePage = () => {
           </motion.div>
         </motion.section>
 
-        {/* Dark Mode Toggle Button */}
+        {/* Dark Mode Toggle */}
         <div className="absolute top-4 right-4">
           <button
             onClick={toggleDarkMode}
@@ -213,7 +272,7 @@ const HomePage = () => {
           </button>
         </div>
 
-        {/* Stats Section with Counters */}
+        {/* Stats Section */}
         <motion.section
           ref={ref}
           className="py-12 md:py-20 text-center bg-gradient-to-r from-indigo-100 to-purple-100 dark:from-gray-800 dark:to-gray-900"
@@ -241,7 +300,7 @@ const HomePage = () => {
           </div>
         </motion.section>
 
-        {/* Features Section with Glassmorphism */}
+        {/* Features Section with Images */}
         <section className="py-12 md:py-20">
           <motion.div
             className="grid gap-8 md:grid-cols-2 lg:grid-cols-3"
@@ -251,27 +310,101 @@ const HomePage = () => {
             viewport={{ once: true }}
           >
             {[
-              ["Ultra-Fast Performance", "Experience lightning-fast editing and preview with our optimized platform."],
-              ["Real-Time Preview", "See changes instantly as you type with our real-time preview."],
-              ["Multi-Page Support", "Content automatically flows to additional pages as needed."],
-              ["Professional Templates", "Choose from a variety of professional templates for any industry."],
-              ["Completely Free", "All features available at no cost, with no watermarks or hidden fees."],
-              ["Downloadable in PDF", "Export your resume in a polished PDF file ready for applications."],
+              [
+                "Ultra-Fast Performance",
+                "Experience lightning-fast editing and preview with our optimized platform.",
+              ],
+              [
+                "Real-Time Preview",
+                "See changes instantly as you type with our real-time preview.",
+              ],
+              [
+                "Multi-Page Support",
+                "Content automatically flows to additional pages as needed.",
+              ],
+              [
+                "Professional Templates",
+                "Choose from a variety of professional templates for any industry.",
+              ],
+              [
+                "Completely Free",
+                "All features available at no cost, with no watermarks or hidden fees.",
+              ],
+              [
+                "Downloadable in PDF",
+                "Export your resume in a polished PDF file ready for applications.",
+              ],
             ].map(([title, description], index) => (
               <motion.div
                 key={index}
-                className="bg-white dark:bg-muted/20 p-8 rounded-xl shadow-xl space-y-4"
+                className="group bg-white dark:bg-muted/20 p-8 rounded-xl shadow-xl space-y-4 transition duration-300 hover:bg-primary/20 dark:hover:bg-primary/20 hover:scale-[1.02] cursor-pointer"
                 variants={fadeUp}
                 custom={index}
               >
-                <h3 className="text-2xl font-semibold text-primary">{title}</h3>
-                <p className="text-muted-foreground">{description}</p>
+                <div className="w-12 h-12 bg-primary/20 dark:bg-primary/30 rounded-lg flex items-center justify-center mx-auto">
+                  {React.createElement(featureIcons[index], {
+                    className: "text-primary w-6 h-6",
+                  })}
+                </div>
+                <h3 className="text-2xl font-semibold text-primary text-center">
+                  {title}
+                </h3>
+                <p className="text-muted-foreground text-center">
+                  {description}
+                </p>
               </motion.div>
             ))}
           </motion.div>
         </section>
 
-        {/* FAQ Section */}
+        {/* How It Works */}
+        <section className="py-16 bg-gradient-to-r from-sky-100 to-indigo-100 dark:from-gray-800 dark:to-gray-900">
+          <motion.div
+            className="max-w-4xl mx-auto text-center"
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true }}
+            variants={containerVariants}
+          >
+            <h2 className="text-3xl font-bold mb-12">How It Works</h2>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-10 text-left">
+              {[
+                [
+                  "Choose Template",
+                  "Pick from beautiful, professional templates.",
+                  "https://cdn-icons-png.flaticon.com/512/3135/3135715.png",
+                ],
+                [
+                  "Customize",
+                  "Fill in your details and tweak the design.",
+                  "https://cdn-icons-png.flaticon.com/512/681/681494.png",
+                ],
+                [
+                  "Download",
+                  "Export as a high-quality PDF and start applying.",
+                  "https://cdn-icons-png.flaticon.com/512/3500/3500833.png",
+                ],
+              ].map(([title, desc, img], index) => (
+                <motion.div
+                  key={index}
+                  className="p-6 bg-white dark:bg-muted/20 rounded-xl shadow-md space-y-4"
+                  variants={fadeUp}
+                  custom={index}
+                >
+                  <img
+                    src={img as string}
+                    alt={title as string}
+                    className="w-16 h-16 mx-auto"
+                  />
+                  <h3 className="text-xl font-semibold text-center">{title}</h3>
+                  <p className="text-muted-foreground text-center">{desc}</p>
+                </motion.div>
+              ))}
+            </div>
+          </motion.div>
+        </section>
+
+        {/* FAQ */}
         <section className="py-12 md:py-20">
           <div className="max-w-3xl mx-auto text-center">
             <motion.h2
@@ -285,9 +418,92 @@ const HomePage = () => {
             </motion.h2>
             <div className="space-y-4 text-left">
               {faqData.map((item, index) => (
-                <AccordionItem key={index} question={item.q} answer={item.a} index={index} />
+                <AccordionItem
+                  key={index}
+                  question={item.q}
+                  answer={item.a}
+                  index={index}
+                />
               ))}
             </div>
+          </div>
+        </section>
+
+        {/* Testimonials */}
+        <section className="py-16 bg-gradient-to-b from-white to-gray-100 dark:from-gray-900 dark:to-gray-800">
+          <motion.div
+            className="max-w-5xl mx-auto text-center"
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true }}
+            variants={containerVariants}
+          >
+            <h2 className="text-3xl font-bold mb-10">What Our Users Say</h2>
+            <div {...handlers} className="relative">
+              <motion.div
+                key={index}
+                className="p-6 bg-white dark:bg-muted/20 rounded-xl shadow-lg text-left space-y-4 mx-auto max-w-md"
+                initial={{ opacity: 0, x: 50 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -50 }}
+                transition={{ duration: 0.5 }}
+              >
+                <img
+                  src={testimonials[index].avatar}
+                  alt={testimonials[index].name}
+                  className="w-14 h-14 rounded-full"
+                />
+                <p className="text-muted-foreground italic">
+                  “{testimonials[index].feedback}”
+                </p>
+                <h4 className="font-bold">{testimonials[index].name}</h4>
+              </motion.div>
+              <div className="absolute top-1/2 left-0 -translate-y-1/2">
+                <button
+                  onClick={() =>
+                    setIndex(
+                      (i) => (i - 1 + testimonials.length) % testimonials.length
+                    )
+                  }
+                >
+                  <ChevronLeft className="w-6 h-6 text-primary hover:scale-125 transition" />
+                </button>
+              </div>
+              <div className="absolute top-1/2 right-0 -translate-y-1/2">
+                <button
+                  onClick={() => setIndex((i) => (i + 1) % testimonials.length)}
+                >
+                  <ChevronRight className="w-6 h-6 text-primary hover:scale-125 transition" />
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        </section>
+
+        {/* CTA Section */}
+        <section
+          className="relative py-20 bg-fixed bg-cover bg-center text-white"
+          style={{
+            backgroundImage:
+              "url('https://images.unsplash.com/photo-1555066931-4365d14bab8c?auto=format&fit=crop&w=1050&q=80')",
+          }}
+        >
+          <div className="bg-black/50 absolute inset-0"></div>
+          <div className="relative z-10 text-center max-w-3xl mx-auto px-6">
+            <h2 className="text-4xl font-bold mb-4">
+              Ready to land your dream job?
+            </h2>
+            <p className="text-lg mb-8">
+              Create your resume now and stand out from the crowd.
+            </p>
+            <Link to="/editor">
+              <Button
+                size="lg"
+                className="bg-white text-black font-semibold hover:scale-105 transition-transform"
+              >
+                Get Started for Free
+              </Button>
+            </Link>
           </div>
         </section>
       </motion.div>

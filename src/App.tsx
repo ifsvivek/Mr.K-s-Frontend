@@ -9,6 +9,7 @@ import { Toaster } from "sonner";
 import UserLoginPage from "./pages/UserLoginPage";
 import AdminLoginPage from "./pages/AdminLoginPage";
 
+
 const router = createBrowserRouter(
   createRoutesFromElements(
     <Route path="/" element={<RootLayout />}>
