@@ -1,5 +1,7 @@
 import { useRef, useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 
 // Types for resume data (same as in ResumeForm)
 interface PersonalInfo {
@@ -72,24 +74,32 @@ interface Template {
 interface ResumePreviewProps {
   resumeData: ResumeData;
   template: Template | null;
+  onUpdate: (updatedData: ResumeData) => void;
 }
 
-export default function ResumePreview({ resumeData, template }: ResumePreviewProps) {
+export default function ResumePreview({ resumeData, template, onUpdate }: ResumePreviewProps) {
   const previewRef = useRef<HTMLDivElement>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [editMode, setEditMode] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingField, setEditingField] = useState<string | null>(null);
+  const [localData, setLocalData] = useState<ResumeData>(resumeData);
 
   // Effect to calculate and update the number of pages
   useEffect(() => {
     if (previewRef.current) {
-      // In a real implementation, this would be more sophisticated
-      // to accurately detect content overflow and page breaks
       const contentHeight = previewRef.current.scrollHeight;
       const pageHeight = 1056; // Roughly A4 height in pixels
       const calculatedPages = Math.ceil(contentHeight / pageHeight);
       setTotalPages(calculatedPages > 0 ? calculatedPages : 1);
     }
-  }, [resumeData, template]);
+  }, [localData, template]);
+
+  // Update local data when props change
+  useEffect(() => {
+    setLocalData(resumeData);
+  }, [resumeData]);
 
   // Format date from YYYY-MM to Month YYYY
   const formatDate = (dateString: string) => {
@@ -115,52 +125,159 @@ export default function ResumePreview({ resumeData, template }: ResumePreviewPro
     setCurrentPage(prev => Math.min(prev + 1, totalPages));
   };
 
+  // Toggle edit mode
+  const toggleEditMode = () => {
+    setEditMode(!editMode);
+    if (editMode) {
+      // Save changes when exiting edit mode
+      onUpdate(localData);
+    }
+  };
+
+  // Start editing a field
+  const startEditing = (id: string | null, field: string) => {
+    setEditingId(id);
+    setEditingField(field);
+  };
+
+  // Stop editing and save changes
+  const stopEditing = () => {
+    setEditingId(null);
+    setEditingField(null);
+    onUpdate(localData);
+  };
+
+  // Handle input changes
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>, id: string | null, field: string) => {
+    const value = e.target.value;
+    
+    if (id === null) {
+      // Personal info field
+      setLocalData(prev => ({
+        ...prev,
+        personalInfo: {
+          ...prev.personalInfo,
+          [field]: value
+        }
+      }));
+    } else {
+      // Array field (experience, education, etc.)
+      const fieldType = field.split('.')[0] as keyof ResumeData;
+      const subField = field.split('.')[1] as string;
+      
+      setLocalData(prev => ({
+        ...prev,
+        [fieldType]: prev[fieldType].map((item: any) => 
+          item.id === id ? { ...item, [subField]: value } : item
+        )
+      }));
+    }
+  };
+
+  // Render editable text
+  const renderEditableText = (text: string, id: string | null, field: string) => {
+    if (editMode && editingId === id && editingField === field) {
+      return (
+        <Input
+          value={text}
+          onChange={(e) => handleInputChange(e, id, field)}
+          onBlur={stopEditing}
+          autoFocus
+          className="p-1 h-auto"
+        />
+      );
+    }
+    return (
+      <span 
+        onClick={() => editMode && startEditing(id, field)}
+        className={`${editMode ? 'cursor-pointer hover:bg-gray-100 px-1 rounded' : ''}`}
+      >
+        {text}
+      </span>
+    );
+  };
+
+  // Render editable textarea
+  const renderEditableTextarea = (text: string, id: string | null, field: string) => {
+    if (editMode && editingId === id && editingField === field) {
+      return (
+        <Textarea
+          value={text}
+          onChange={(e) => handleInputChange(e, id, field)}
+          onBlur={stopEditing}
+          autoFocus
+          className="p-1 h-auto min-h-[60px]"
+        />
+      );
+    }
+    return (
+      <div 
+        onClick={() => editMode && startEditing(id, field)}
+        className={`${editMode ? 'cursor-pointer hover:bg-gray-100 px-1 rounded' : ''}`}
+      >
+        {text}
+      </div>
+    );
+  };
+
   // Render the Modern template
   const renderModernTemplate = () => (
     <div className="bg-white text-black px-8 py-10 max-w-[800px] mx-auto shadow-sm">
       {/* Header */}
       <header className="border-b border-gray-300 pb-4 mb-6">
-        <h1 className="text-3xl font-bold mb-1">{resumeData.personalInfo.name}</h1>
-        <p className="text-lg text-gray-600 mb-3">{resumeData.personalInfo.title}</p>
+        <h1 className="text-3xl font-bold mb-1">
+          {renderEditableText(localData.personalInfo.name, null, 'name')}
+        </h1>
+        <p className="text-lg text-gray-600 mb-3">
+          {renderEditableText(localData.personalInfo.title, null, 'title')}
+        </p>
         <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-gray-600">
-          {resumeData.personalInfo.email && (
-            <div>{resumeData.personalInfo.email}</div>
+          {localData.personalInfo.email && (
+            <div>{renderEditableText(localData.personalInfo.email, null, 'email')}</div>
           )}
-          {resumeData.personalInfo.phone && (
-            <div>{resumeData.personalInfo.phone}</div>
+          {localData.personalInfo.phone && (
+            <div>{renderEditableText(localData.personalInfo.phone, null, 'phone')}</div>
           )}
-          {resumeData.personalInfo.location && (
-            <div>{resumeData.personalInfo.location}</div>
+          {localData.personalInfo.location && (
+            <div>{renderEditableText(localData.personalInfo.location, null, 'location')}</div>
           )}
         </div>
       </header>
 
       {/* Summary */}
-      {resumeData.personalInfo.summary && (
+      {localData.personalInfo.summary && (
         <section className="mb-6">
           <h2 className="text-lg font-semibold mb-2 text-gray-800">Professional Summary</h2>
-          <p className="text-gray-700">{resumeData.personalInfo.summary}</p>
+          {renderEditableTextarea(localData.personalInfo.summary, null, 'summary')}
         </section>
       )}
 
       {/* Experience */}
-      {resumeData.experience.length > 0 && (
+      {localData.experience.length > 0 && (
         <section className="mb-6">
           <h2 className="text-lg font-semibold mb-3 text-gray-800 border-b border-gray-200 pb-1">Experience</h2>
           <div className="space-y-4">
-            {resumeData.experience.map((exp) => (
+            {localData.experience.map((exp) => (
               <div key={exp.id}>
                 <div className="flex justify-between items-baseline">
-                  <h3 className="font-medium text-gray-800">{exp.title}</h3>
+                  <h3 className="font-medium text-gray-800">
+                    {renderEditableText(exp.title, exp.id, 'experience.title')}
+                  </h3>
                   <span className="text-sm text-gray-600">
-                    {formatDate(exp.startDate)} - {formatDate(exp.endDate)}
+                    {renderEditableText(exp.startDate, exp.id, 'experience.startDate')} - {renderEditableText(exp.endDate, exp.id, 'experience.endDate')}
                   </span>
                 </div>
                 <div className="flex justify-between items-baseline mb-1">
-                  <p className="text-gray-700">{exp.company}</p>
-                  {exp.location && <p className="text-sm text-gray-600">{exp.location}</p>}
+                  <p className="text-gray-700">
+                    {renderEditableText(exp.company, exp.id, 'experience.company')}
+                  </p>
+                  {exp.location && <p className="text-sm text-gray-600">
+                    {renderEditableText(exp.location, exp.id, 'experience.location')}
+                  </p>}
                 </div>
-                <p className="text-sm text-gray-700">{exp.description}</p>
+                <p className="text-sm text-gray-700">
+                  {renderEditableTextarea(exp.description, exp.id, 'experience.description')}
+                </p>
               </div>
             ))}
           </div>
@@ -168,23 +285,31 @@ export default function ResumePreview({ resumeData, template }: ResumePreviewPro
       )}
 
       {/* Education */}
-      {resumeData.education.length > 0 && (
+      {localData.education.length > 0 && (
         <section className="mb-6">
           <h2 className="text-lg font-semibold mb-3 text-gray-800 border-b border-gray-200 pb-1">Education</h2>
           <div className="space-y-4">
-            {resumeData.education.map((edu) => (
+            {localData.education.map((edu) => (
               <div key={edu.id}>
                 <div className="flex justify-between items-baseline">
-                  <h3 className="font-medium text-gray-800">{edu.degree} in {edu.field}</h3>
+                  <h3 className="font-medium text-gray-800">
+                    {renderEditableText(edu.degree, edu.id, 'education.degree')} in {renderEditableText(edu.field, edu.id, 'education.field')}
+                  </h3>
                   <span className="text-sm text-gray-600">
-                    {formatDate(edu.startDate)} - {formatDate(edu.endDate)}
+                    {renderEditableText(edu.startDate, edu.id, 'education.startDate')} - {renderEditableText(edu.endDate, edu.id, 'education.endDate')}
                   </span>
                 </div>
                 <div className="flex justify-between items-baseline mb-1">
-                  <p className="text-gray-700">{edu.institution}</p>
-                  {edu.location && <p className="text-sm text-gray-600">{edu.location}</p>}
+                  <p className="text-gray-700">
+                    {renderEditableText(edu.institution, edu.id, 'education.institution')}
+                  </p>
+                  {edu.location && <p className="text-sm text-gray-600">
+                    {renderEditableText(edu.location, edu.id, 'education.location')}
+                  </p>}
                 </div>
-                {edu.description && <p className="text-sm text-gray-700">{edu.description}</p>}
+                {edu.description && <p className="text-sm text-gray-700">
+                  {renderEditableTextarea(edu.description, edu.id, 'education.description')}
+                </p>}
               </div>
             ))}
           </div>
@@ -192,14 +317,18 @@ export default function ResumePreview({ resumeData, template }: ResumePreviewPro
       )}
 
       {/* Skills */}
-      {resumeData.skills.length > 0 && (
+      {localData.skills.length > 0 && (
         <section className="mb-6">
           <h2 className="text-lg font-semibold mb-2 text-gray-800 border-b border-gray-200 pb-1">Skills</h2>
           <div className="flex flex-wrap gap-x-4 gap-y-2">
-            {resumeData.skills.map((skill) => (
+            {localData.skills.map((skill) => (
               <div key={skill.id} className="flex items-center gap-1">
-                <span className="text-gray-800">{skill.name}</span>
-                <span className="text-xs text-gray-600">({skill.level})</span>
+                <span className="text-gray-800">
+                  {renderEditableText(skill.name, skill.id, 'skills.name')}
+                </span>
+                <span className="text-xs text-gray-600">
+                  ({renderEditableText(skill.level, skill.id, 'skills.level')})
+                </span>
               </div>
             ))}
           </div>
@@ -207,21 +336,25 @@ export default function ResumePreview({ resumeData, template }: ResumePreviewPro
       )}
 
       {/* Projects */}
-      {resumeData.projects.length > 0 && (
+      {localData.projects.length > 0 && (
         <section className="mb-6">
           <h2 className="text-lg font-semibold mb-3 text-gray-800 border-b border-gray-200 pb-1">Projects</h2>
           <div className="space-y-3">
-            {resumeData.projects.map((project) => (
+            {localData.projects.map((project) => (
               <div key={project.id}>
                 <div className="flex items-baseline gap-2">
-                  <h3 className="font-medium text-gray-800">{project.title}</h3>
+                  <h3 className="font-medium text-gray-800">
+                    {renderEditableText(project.title, project.id, 'projects.title')}
+                  </h3>
                   {project.link && (
                     <a href={project.link} className="text-xs text-blue-600 hover:underline" target="_blank" rel="noopener noreferrer">
                       Link
                     </a>
                   )}
                 </div>
-                <p className="text-sm text-gray-700">{project.description}</p>
+                <p className="text-sm text-gray-700">
+                  {renderEditableTextarea(project.description, project.id, 'projects.description')}
+                </p>
               </div>
             ))}
           </div>
@@ -229,18 +362,26 @@ export default function ResumePreview({ resumeData, template }: ResumePreviewPro
       )}
 
       {/* Certifications */}
-      {resumeData.certifications.length > 0 && (
+      {localData.certifications.length > 0 && (
         <section>
           <h2 className="text-lg font-semibold mb-3 text-gray-800 border-b border-gray-200 pb-1">Certifications</h2>
           <div className="space-y-3">
-            {resumeData.certifications.map((cert) => (
+            {localData.certifications.map((cert) => (
               <div key={cert.id}>
                 <div className="flex justify-between items-baseline">
-                  <h3 className="font-medium text-gray-800">{cert.name}</h3>
-                  <span className="text-sm text-gray-600">{formatDate(cert.date)}</span>
+                  <h3 className="font-medium text-gray-800">
+                    {renderEditableText(cert.name, cert.id, 'certifications.name')}
+                  </h3>
+                  <span className="text-sm text-gray-600">
+                    {renderEditableText(cert.date, cert.id, 'certifications.date')}
+                  </span>
                 </div>
-                <p className="text-gray-700">{cert.issuer}</p>
-                {cert.description && <p className="text-sm text-gray-700">{cert.description}</p>}
+                <p className="text-gray-700">
+                  {renderEditableText(cert.issuer, cert.id, 'certifications.issuer')}
+                </p>
+                {cert.description && <p className="text-sm text-gray-700">
+                  {renderEditableTextarea(cert.description, cert.id, 'certifications.description')}
+                </p>}
               </div>
             ))}
           </div>
@@ -249,52 +390,64 @@ export default function ResumePreview({ resumeData, template }: ResumePreviewPro
     </div>
   );
 
-  // Render the Classic template
+  // Render the Classic template (similar edits as above would be needed)
   const renderClassicTemplate = () => (
     <div className="bg-white text-black px-8 py-10 max-w-[800px] mx-auto shadow-sm">
       {/* Header */}
       <header className="text-center mb-8">
-        <h1 className="text-2xl font-bold uppercase tracking-wider mb-1">{resumeData.personalInfo.name}</h1>
-        <p className="text-lg mb-3">{resumeData.personalInfo.title}</p>
+        <h1 className="text-2xl font-bold uppercase tracking-wider mb-1">
+          {renderEditableText(localData.personalInfo.name, null, 'name')}
+        </h1>
+        <p className="text-lg mb-3">
+          {renderEditableText(localData.personalInfo.title, null, 'title')}
+        </p>
         <div className="flex justify-center flex-wrap gap-x-4 gap-y-1 text-sm">
-          {resumeData.personalInfo.email && (
-            <div>{resumeData.personalInfo.email}</div>
+          {localData.personalInfo.email && (
+            <div>{renderEditableText(localData.personalInfo.email, null, 'email')}</div>
           )}
-          {resumeData.personalInfo.phone && (
-            <div>{resumeData.personalInfo.phone}</div>
+          {localData.personalInfo.phone && (
+            <div>{renderEditableText(localData.personalInfo.phone, null, 'phone')}</div>
           )}
-          {resumeData.personalInfo.location && (
-            <div>{resumeData.personalInfo.location}</div>
+          {localData.personalInfo.location && (
+            <div>{renderEditableText(localData.personalInfo.location, null, 'location')}</div>
           )}
         </div>
       </header>
 
       {/* Summary */}
-      {resumeData.personalInfo.summary && (
+      {localData.personalInfo.summary && (
         <section className="mb-6">
           <h2 className="text-lg font-bold uppercase text-center mb-2 border-b border-gray-300 pb-1">Summary</h2>
-          <p>{resumeData.personalInfo.summary}</p>
+          {renderEditableTextarea(localData.personalInfo.summary, null, 'summary')}
         </section>
       )}
 
       {/* Experience */}
-      {resumeData.experience.length > 0 && (
+      {localData.experience.length > 0 && (
         <section className="mb-6">
           <h2 className="text-lg font-bold uppercase text-center mb-4 border-b border-gray-300 pb-1">Professional Experience</h2>
           <div className="space-y-5">
-            {resumeData.experience.map((exp) => (
+            {localData.experience.map((exp) => (
               <div key={exp.id}>
                 <div className="flex justify-between items-baseline">
-                  <h3 className="font-bold">{exp.company}</h3>
+                  <h3 className="font-bold">
+                    {renderEditableText(exp.company, exp.id, 'experience.company')}
+                  </h3>
                   <span className="text-sm">
-                    {formatDate(exp.startDate)} - {formatDate(exp.endDate)}
+                    {renderEditableText(exp.startDate, exp.id, 'experience.startDate')} - {renderEditableText(exp.endDate, exp.id, 'experience.endDate')}
                   </span>
                 </div>
                 <div className="flex justify-between items-baseline mb-2">
-                  <p className="italic">{exp.title}</p>
-                  {exp.location && <p className="text-sm">{exp.location}</p>}
+                  <p className="italic">
+                    {renderEditableText(exp.title, exp.id, 'experience.title')}
+                  </p>
+                  {exp.location && <p className="text-sm">
+                    {renderEditableText(exp.location, exp.id, 'experience.location')}
+                  </p>}
                 </div>
-                <p className="text-sm">{exp.description}</p>
+                <p className="text-sm">
+                  {renderEditableTextarea(exp.description, exp.id, 'experience.description')}
+                </p>
               </div>
             ))}
           </div>
@@ -302,21 +455,29 @@ export default function ResumePreview({ resumeData, template }: ResumePreviewPro
       )}
 
       {/* Education */}
-      {resumeData.education.length > 0 && (
+      {localData.education.length > 0 && (
         <section className="mb-6">
           <h2 className="text-lg font-bold uppercase text-center mb-4 border-b border-gray-300 pb-1">Education</h2>
           <div className="space-y-5">
-            {resumeData.education.map((edu) => (
+            {localData.education.map((edu) => (
               <div key={edu.id}>
                 <div className="flex justify-between items-baseline">
-                  <h3 className="font-bold">{edu.institution}</h3>
+                  <h3 className="font-bold">
+                    {renderEditableText(edu.institution, edu.id, 'education.institution')}
+                  </h3>
                   <span className="text-sm">
-                    {formatDate(edu.startDate)} - {formatDate(edu.endDate)}
+                    {renderEditableText(edu.startDate, edu.id, 'education.startDate')} - {renderEditableText(edu.endDate, edu.id, 'education.endDate')}
                   </span>
                 </div>
-                <p className="italic">{edu.degree} in {edu.field}</p>
-                {edu.location && <p className="text-sm mb-1">{edu.location}</p>}
-                {edu.description && <p className="text-sm">{edu.description}</p>}
+                <p className="italic">
+                  {renderEditableText(edu.degree, edu.id, 'education.degree')} in {renderEditableText(edu.field, edu.id, 'education.field')}
+                </p>
+                {edu.location && <p className="text-sm mb-1">
+                  {renderEditableText(edu.location, edu.id, 'education.location')}
+                </p>}
+                {edu.description && <p className="text-sm">
+                  {renderEditableTextarea(edu.description, edu.id, 'education.description')}
+                </p>}
               </div>
             ))}
           </div>
@@ -324,33 +485,40 @@ export default function ResumePreview({ resumeData, template }: ResumePreviewPro
       )}
 
       {/* Skills */}
-      {resumeData.skills.length > 0 && (
+      {localData.skills.length > 0 && (
         <section className="mb-6">
           <h2 className="text-lg font-bold uppercase text-center mb-3 border-b border-gray-300 pb-1">Skills</h2>
           <ul className="list-disc pl-5 grid grid-cols-2 gap-1">
-            {resumeData.skills.map((skill) => (
-              <li key={skill.id} className="text-sm">{skill.name} <span className="text-gray-600">({skill.level})</span></li>
+            {localData.skills.map((skill) => (
+              <li key={skill.id} className="text-sm">
+                {renderEditableText(skill.name, skill.id, 'skills.name')} 
+                <span className="text-gray-600"> ({renderEditableText(skill.level, skill.id, 'skills.level')})</span>
+              </li>
             ))}
           </ul>
         </section>
       )}
 
       {/* Projects */}
-      {resumeData.projects.length > 0 && (
+      {localData.projects.length > 0 && (
         <section className="mb-6">
           <h2 className="text-lg font-bold uppercase text-center mb-4 border-b border-gray-300 pb-1">Projects</h2>
           <div className="space-y-4">
-            {resumeData.projects.map((project) => (
+            {localData.projects.map((project) => (
               <div key={project.id}>
                 <div className="flex items-baseline gap-2">
-                  <h3 className="font-bold">{project.title}</h3>
+                  <h3 className="font-bold">
+                    {renderEditableText(project.title, project.id, 'projects.title')}
+                  </h3>
                   {project.link && (
                     <a href={project.link} className="text-xs text-blue-600 hover:underline" target="_blank" rel="noopener noreferrer">
                       ({project.link})
                     </a>
                   )}
                 </div>
-                <p className="text-sm">{project.description}</p>
+                <p className="text-sm">
+                  {renderEditableTextarea(project.description, project.id, 'projects.description')}
+                </p>
               </div>
             ))}
           </div>
@@ -358,18 +526,26 @@ export default function ResumePreview({ resumeData, template }: ResumePreviewPro
       )}
 
       {/* Certifications */}
-      {resumeData.certifications.length > 0 && (
+      {localData.certifications.length > 0 && (
         <section>
           <h2 className="text-lg font-bold uppercase text-center mb-4 border-b border-gray-300 pb-1">Certifications</h2>
           <div className="space-y-4">
-            {resumeData.certifications.map((cert) => (
+            {localData.certifications.map((cert) => (
               <div key={cert.id}>
                 <div className="flex justify-between items-baseline">
-                  <h3 className="font-bold">{cert.name}</h3>
-                  <span className="text-sm">{formatDate(cert.date)}</span>
+                  <h3 className="font-bold">
+                    {renderEditableText(cert.name, cert.id, 'certifications.name')}
+                  </h3>
+                  <span className="text-sm">
+                    {renderEditableText(cert.date, cert.id, 'certifications.date')}
+                  </span>
                 </div>
-                <p className="italic">{cert.issuer}</p>
-                {cert.description && <p className="text-sm">{cert.description}</p>}
+                <p className="italic">
+                  {renderEditableText(cert.issuer, cert.id, 'certifications.issuer')}
+                </p>
+                {cert.description && <p className="text-sm">
+                  {renderEditableTextarea(cert.description, cert.id, 'certifications.description')}
+                </p>}
               </div>
             ))}
           </div>
@@ -378,48 +554,52 @@ export default function ResumePreview({ resumeData, template }: ResumePreviewPro
     </div>
   );
 
-  // Render the Creative template
+  // Render the Creative template (similar edits as above would be needed)
   const renderCreativeTemplate = () => (
     <div className="bg-white text-black max-w-[800px] mx-auto shadow-sm">
       <div className="grid grid-cols-3 min-h-full">
         {/* Sidebar */}
         <div className="bg-blue-900 text-white p-6">
           <div className="mb-8 text-center">
-            <h1 className="text-xl font-bold mb-1">{resumeData.personalInfo.name}</h1>
-            <p className="text-sm mb-3">{resumeData.personalInfo.title}</p>
+            <h1 className="text-xl font-bold mb-1">
+              {renderEditableText(localData.personalInfo.name, null, 'name')}
+            </h1>
+            <p className="text-sm mb-3">
+              {renderEditableText(localData.personalInfo.title, null, 'title')}
+            </p>
           </div>
 
           <div className="space-y-1 mb-6 text-sm">
-            {resumeData.personalInfo.email && (
+            {localData.personalInfo.email && (
               <div className="flex gap-2 items-center">
                 <span className="font-bold">Email:</span>
-                <span>{resumeData.personalInfo.email}</span>
+                <span>{renderEditableText(localData.personalInfo.email, null, 'email')}</span>
               </div>
             )}
-            {resumeData.personalInfo.phone && (
+            {localData.personalInfo.phone && (
               <div className="flex gap-2 items-center">
                 <span className="font-bold">Phone:</span>
-                <span>{resumeData.personalInfo.phone}</span>
+                <span>{renderEditableText(localData.personalInfo.phone, null, 'phone')}</span>
               </div>
             )}
-            {resumeData.personalInfo.location && (
+            {localData.personalInfo.location && (
               <div className="flex gap-2 items-center">
                 <span className="font-bold">Location:</span>
-                <span>{resumeData.personalInfo.location}</span>
+                <span>{renderEditableText(localData.personalInfo.location, null, 'location')}</span>
               </div>
             )}
           </div>
 
           {/* Skills in sidebar */}
-          {resumeData.skills.length > 0 && (
+          {localData.skills.length > 0 && (
             <div className="mb-6">
               <h2 className="text-md font-bold mb-3 border-b border-blue-700 pb-1">Skills</h2>
               <div className="space-y-2">
-                {resumeData.skills.map((skill) => (
+                {localData.skills.map((skill) => (
                   <div key={skill.id} className="text-sm">
                     <div className="flex justify-between">
-                      <span>{skill.name}</span>
-                      <span className="text-xs">{skill.level}</span>
+                      <span>{renderEditableText(skill.name, skill.id, 'skills.name')}</span>
+                      <span className="text-xs">{renderEditableText(skill.level, skill.id, 'skills.level')}</span>
                     </div>
                     <div className="w-full bg-blue-700 h-1.5 mt-1">
                       <div
@@ -438,14 +618,19 @@ export default function ResumePreview({ resumeData, template }: ResumePreviewPro
           )}
 
           {/* Certifications in sidebar */}
-          {resumeData.certifications.length > 0 && (
+          {localData.certifications.length > 0 && (
             <div>
               <h2 className="text-md font-bold mb-3 border-b border-blue-700 pb-1">Certifications</h2>
               <div className="space-y-3">
-                {resumeData.certifications.map((cert) => (
+                {localData.certifications.map((cert) => (
                   <div key={cert.id} className="text-sm">
-                    <h3 className="font-bold">{cert.name}</h3>
-                    <p className="text-xs">{cert.issuer} | {formatDate(cert.date)}</p>
+                    <h3 className="font-bold">
+                      {renderEditableText(cert.name, cert.id, 'certifications.name')}
+                    </h3>
+                    <p className="text-xs">
+                      {renderEditableText(cert.issuer, cert.id, 'certifications.issuer')} | 
+                      {renderEditableText(cert.date, cert.id, 'certifications.date')}
+                    </p>
                   </div>
                 ))}
               </div>
@@ -456,31 +641,39 @@ export default function ResumePreview({ resumeData, template }: ResumePreviewPro
         {/* Main Content */}
         <div className="col-span-2 p-6">
           {/* Summary */}
-          {resumeData.personalInfo.summary && (
+          {localData.personalInfo.summary && (
             <section className="mb-6">
               <h2 className="text-lg font-bold text-blue-900 mb-2 border-b border-gray-200 pb-1">About Me</h2>
-              <p className="text-sm">{resumeData.personalInfo.summary}</p>
+              {renderEditableTextarea(localData.personalInfo.summary, null, 'summary')}
             </section>
           )}
 
           {/* Experience */}
-          {resumeData.experience.length > 0 && (
+          {localData.experience.length > 0 && (
             <section className="mb-6">
               <h2 className="text-lg font-bold text-blue-900 mb-3 border-b border-gray-200 pb-1">Work Experience</h2>
               <div className="space-y-4">
-                {resumeData.experience.map((exp) => (
+                {localData.experience.map((exp) => (
                   <div key={exp.id}>
                     <div className="flex justify-between items-baseline">
-                      <h3 className="font-bold">{exp.title}</h3>
+                      <h3 className="font-bold">
+                        {renderEditableText(exp.title, exp.id, 'experience.title')}
+                      </h3>
                       <span className="text-xs text-gray-600">
-                        {formatDate(exp.startDate)} - {formatDate(exp.endDate)}
+                        {renderEditableText(exp.startDate, exp.id, 'experience.startDate')} - {renderEditableText(exp.endDate, exp.id, 'experience.endDate')}
                       </span>
                     </div>
                     <div className="flex justify-between items-baseline mb-1">
-                      <p className="text-sm text-blue-900 font-medium">{exp.company}</p>
-                      {exp.location && <p className="text-xs text-gray-600">{exp.location}</p>}
+                      <p className="text-sm text-blue-900 font-medium">
+                        {renderEditableText(exp.company, exp.id, 'experience.company')}
+                      </p>
+                      {exp.location && <p className="text-xs text-gray-600">
+                        {renderEditableText(exp.location, exp.id, 'experience.location')}
+                      </p>}
                     </div>
-                    <p className="text-xs">{exp.description}</p>
+                    <p className="text-xs">
+                      {renderEditableTextarea(exp.description, exp.id, 'experience.description')}
+                    </p>
                   </div>
                 ))}
               </div>
@@ -488,21 +681,29 @@ export default function ResumePreview({ resumeData, template }: ResumePreviewPro
           )}
 
           {/* Education */}
-          {resumeData.education.length > 0 && (
+          {localData.education.length > 0 && (
             <section className="mb-6">
               <h2 className="text-lg font-bold text-blue-900 mb-3 border-b border-gray-200 pb-1">Education</h2>
               <div className="space-y-4">
-                {resumeData.education.map((edu) => (
+                {localData.education.map((edu) => (
                   <div key={edu.id}>
                     <div className="flex justify-between items-baseline">
-                      <h3 className="font-bold">{edu.degree} in {edu.field}</h3>
+                      <h3 className="font-bold">
+                        {renderEditableText(edu.degree, edu.id, 'education.degree')} in {renderEditableText(edu.field, edu.id, 'education.field')}
+                      </h3>
                       <span className="text-xs text-gray-600">
-                        {formatDate(edu.startDate)} - {formatDate(edu.endDate)}
+                        {renderEditableText(edu.startDate, edu.id, 'education.startDate')} - {renderEditableText(edu.endDate, edu.id, 'education.endDate')}
                       </span>
                     </div>
-                    <p className="text-sm text-blue-900 font-medium">{edu.institution}</p>
-                    {edu.location && <p className="text-xs text-gray-600 mb-1">{edu.location}</p>}
-                    {edu.description && <p className="text-xs">{edu.description}</p>}
+                    <p className="text-sm text-blue-900 font-medium">
+                      {renderEditableText(edu.institution, edu.id, 'education.institution')}
+                    </p>
+                    {edu.location && <p className="text-xs text-gray-600 mb-1">
+                      {renderEditableText(edu.location, edu.id, 'education.location')}
+                    </p>}
+                    {edu.description && <p className="text-xs">
+                      {renderEditableTextarea(edu.description, edu.id, 'education.description')}
+                    </p>}
                   </div>
                 ))}
               </div>
@@ -510,21 +711,25 @@ export default function ResumePreview({ resumeData, template }: ResumePreviewPro
           )}
 
           {/* Projects */}
-          {resumeData.projects.length > 0 && (
+          {localData.projects.length > 0 && (
             <section>
               <h2 className="text-lg font-bold text-blue-900 mb-3 border-b border-gray-200 pb-1">Projects</h2>
               <div className="space-y-3">
-                {resumeData.projects.map((project) => (
+                {localData.projects.map((project) => (
                   <div key={project.id}>
                     <div className="flex items-baseline gap-2">
-                      <h3 className="font-bold">{project.title}</h3>
+                      <h3 className="font-bold">
+                        {renderEditableText(project.title, project.id, 'projects.title')}
+                      </h3>
                       {project.link && (
                         <a href={project.link} className="text-xs text-blue-600 hover:underline" target="_blank" rel="noopener noreferrer">
                           Link
                         </a>
                       )}
                     </div>
-                    <p className="text-xs">{project.description}</p>
+                    <p className="text-xs">
+                      {renderEditableTextarea(project.description, project.id, 'projects.description')}
+                    </p>
                   </div>
                 ))}
               </div>
@@ -551,12 +756,22 @@ export default function ResumePreview({ resumeData, template }: ResumePreviewPro
 
   return (
     <div className="flex flex-col h-full">
+      {/* Edit mode toggle button */}
+      <div className="flex justify-end p-2 bg-gray-50 border-b">
+        <Button
+          variant={editMode ? "default" : "outline"}
+          size="sm"
+          onClick={toggleEditMode}
+        >
+          {editMode ? "Save Changes" : "Edit Resume"}
+        </Button>
+      </div>
+
       <div
         ref={previewRef}
         className="flex-1 overflow-auto bg-gray-100 p-4 relative"
         style={{
           // Only show content for the current page in a paginated view
-          // In a real implementation, this would use proper pagination logic
           scrollTop: (currentPage - 1) * 1056
         }}
       >

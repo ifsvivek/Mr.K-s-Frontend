@@ -73,7 +73,7 @@ interface ResumeFormProps {
 }
 
 export default function ResumeForm({ resumeData, onChange }: ResumeFormProps) {
-  const [expandedSection, setExpandedSection] = useState("personal-info");
+  const [expandedSection, setExpandedSection] = useState<string>("personal-info");
 
   // Update personal info
   const updatePersonalInfo = (field: keyof PersonalInfo, value: string) => {
@@ -100,19 +100,15 @@ export default function ResumeForm({ resumeData, onChange }: ResumeFormProps) {
     onChange({
       experience: [...resumeData.experience, newExperience],
     });
+    setExpandedSection("experience");
   };
 
   // Update an experience entry
   const updateExperience = (id: string, field: keyof Experience, value: string) => {
-    const updatedExperience = resumeData.experience.map((exp) => {
-      if (exp.id === id) {
-        return { ...exp, [field]: value };
-      }
-      return exp;
-    });
-
     onChange({
-      experience: updatedExperience,
+      experience: resumeData.experience.map((exp) => 
+        exp.id === id ? { ...exp, [field]: value } : exp
+      ),
     });
   };
 
@@ -139,19 +135,15 @@ export default function ResumeForm({ resumeData, onChange }: ResumeFormProps) {
     onChange({
       education: [...resumeData.education, newEducation],
     });
+    setExpandedSection("education");
   };
 
   // Update an education entry
   const updateEducation = (id: string, field: keyof Education, value: string) => {
-    const updatedEducation = resumeData.education.map((edu) => {
-      if (edu.id === id) {
-        return { ...edu, [field]: value };
-      }
-      return edu;
-    });
-
     onChange({
-      education: updatedEducation,
+      education: resumeData.education.map((edu) => 
+        edu.id === id ? { ...edu, [field]: value } : edu
+      ),
     });
   };
 
@@ -173,19 +165,15 @@ export default function ResumeForm({ resumeData, onChange }: ResumeFormProps) {
     onChange({
       skills: [...resumeData.skills, newSkill],
     });
+    setExpandedSection("skills");
   };
 
   // Update a skill
   const updateSkill = (id: string, field: keyof Skill, value: string) => {
-    const updatedSkills = resumeData.skills.map((skill) => {
-      if (skill.id === id) {
-        return { ...skill, [field]: value };
-      }
-      return skill;
-    });
-
     onChange({
-      skills: updatedSkills,
+      skills: resumeData.skills.map((skill) => 
+        skill.id === id ? { ...skill, [field]: value } : skill
+      ),
     });
   };
 
@@ -202,25 +190,20 @@ export default function ResumeForm({ resumeData, onChange }: ResumeFormProps) {
       id: `proj-${Date.now()}`,
       title: "",
       description: "",
-      link: "",
     };
 
     onChange({
       projects: [...resumeData.projects, newProject],
     });
+    setExpandedSection("projects");
   };
 
   // Update a project
   const updateProject = (id: string, field: keyof Project, value: string) => {
-    const updatedProjects = resumeData.projects.map((project) => {
-      if (project.id === id) {
-        return { ...project, [field]: value };
-      }
-      return project;
-    });
-
     onChange({
-      projects: updatedProjects,
+      projects: resumeData.projects.map((project) => 
+        project.id === id ? { ...project, [field]: value } : project
+      ),
     });
   };
 
@@ -244,19 +227,15 @@ export default function ResumeForm({ resumeData, onChange }: ResumeFormProps) {
     onChange({
       certifications: [...resumeData.certifications, newCertification],
     });
+    setExpandedSection("certifications");
   };
 
   // Update a certification
   const updateCertification = (id: string, field: keyof Certification, value: string) => {
-    const updatedCertifications = resumeData.certifications.map((cert) => {
-      if (cert.id === id) {
-        return { ...cert, [field]: value };
-      }
-      return cert;
-    });
-
     onChange({
-      certifications: updatedCertifications,
+      certifications: resumeData.certifications.map((cert) => 
+        cert.id === id ? { ...cert, [field]: value } : cert
+      ),
     });
   };
 
