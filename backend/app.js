@@ -3,18 +3,18 @@ dotenv.config();
 const express = require('express');
 const cors = require('cors');
 const passport = require('passport');
-require('./utils/passportStrategies');
+require('./utils/passportStrategies.js');
 const app = express();
 const cookieParser = require('cookie-parser');
-const connectToDb = require('./db/db');
+const connectDB = require('./db/db.js');
 
-const adminRoutes = require('./routes/adminRoute');
-const userRoutes = require('./routes/userRoute');
-const templateRoutes = require('./routes/templeteRoute');
-const resumeRoutes = require('./routes/resumeRoute');
+const adminRoutes = require('./routes/adminRoute.js');
+const userRoutes = require('./routes/userRoute.js');
+const templateRoutes = require('./routes/templeteRoute.js');
+const resumeRoutes = require('./routes/resumeRoute.js');
 
 
-connectToDb();
+connectDB();
 
 app.use(cors({
     origin: 'http://localhost:5173', 
