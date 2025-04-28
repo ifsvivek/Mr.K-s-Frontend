@@ -1,4 +1,4 @@
-import mongoose from "mongoose";
+const mongoose = require('mongoose');
 
 const connectDB = async () => {
     await mongoose.connect(`${process.env.MONGODB_URI}/Mr.KCV`);
@@ -12,4 +12,4 @@ const connectDB = async () => {
     });
 };
 
-export default connectDB;
+module.exports = connectDB;
