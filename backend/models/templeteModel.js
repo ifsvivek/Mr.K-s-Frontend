@@ -1,31 +1,39 @@
-const mongoose = require('mongoose');
+const mongoose = require("mongoose");
 
 const templateSchema = new mongoose.Schema({
   name: {
     type: String,
     required: true,
-    trim: true
-  },
-  thumbnail: {
-    type: String,
-    required: true
-  },
-  category: {
-    type: String,
-    enum: ['modern', 'professional', 'creative'],
-    required: true
-  },
-  createdBy: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Admin',
-    required: true
   },
   description: {
     type: String,
-    default: ''
+  },
+  thumbnail: {
+    type: String, //add required: true,
+    
+  },
+  structure: {
+    type: mongoose.Schema.Types.Mixed,
+    required: true,
+  },
+  style: {
+    fonts: [String],
+    colors: [String],
+  },
+  createdBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Admin",
+    required: true,
   }
-}, {
-  timestamps: true
-});
+},
+  {
+    timestamps: {
+      createdAt: true,
+      updatedAt: true,
+    },
+  }
+);
 
-export default mongoose.model('Template', templateSchema);
+const Template = mongoose.model("Template", templateSchema);
+
+module.exports = Template;

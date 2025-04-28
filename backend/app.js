@@ -7,8 +7,12 @@ require('./utils/passportStrategies');
 const app = express();
 const cookieParser = require('cookie-parser');
 const connectToDb = require('./db/db');
+
 const adminRoutes = require('./routes/adminRoute');
 const userRoutes = require('./routes/userRoute');
+const templateRoutes = require('./routes/templeteRoute');
+const resumeRoutes = require('./routes/resumeRoute');
+
 
 connectToDb();
 
@@ -26,6 +30,9 @@ app.use(passport.initialize());
 
 app.use('/api/admin', adminRoutes);
 app.use('/api/user', userRoutes);
+app.use('/api/template', templateRoutes);
+app.use('/api/resume', resumeRoutes);
+
 
 
 module.exports = app;

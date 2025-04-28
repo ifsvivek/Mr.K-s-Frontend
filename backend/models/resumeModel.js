@@ -1,28 +1,36 @@
-const mongoose = require('mongoose');
+const mongoose = require("mongoose");
 
 const resumeSchema = new mongoose.Schema({
-  userId: {
+  user: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-    required: true
+    ref: "User",
+    required: true,
   },
-  templateId: {
+  template: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'Template',
-    required: true
+    ref: "Template",
+    required: true,
   },
-  sections: [{
-    sectionId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'Section'
+  title: {
+    type: String,
+  }, 
+  data: {
+    type: mongoose.Schema.Types.Mixed,
+    default: {},
+  },
+  styleOverrides: {
+    font: { type: String },
+    color: { type: String },
+  }
+},
+  {
+    timestamps: {
+      createdAt: true,
+      updatedAt: true,
     },
-    data: {
-      type: mongoose.Schema.Types.Mixed,
-      default: {}
-    }
-  }]
-}, {
-  timestamps: true
-});
+  }
+);
 
-export default mongoose.model('Resume', resumeSchema);
+const Resume = mongoose.model("Resume", resumeSchema);
+
+module.exports = Resume;
