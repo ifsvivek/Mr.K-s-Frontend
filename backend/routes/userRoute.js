@@ -35,6 +35,21 @@ router.post(
   userController.loginUser
 );
 
+router.post(
+  "/update/password",
+  authMiddleware.authUser,
+  [
+    body("oldPassword")
+      .isLength({ min: 3 })
+      .withMessage("Old Password should be at least 3 characters long"),
+    body("newPassword")
+      .isLength({ min: 3 })
+      .withMessage("New Password should be at least 3 characters long"),
+  ],
+ userController.updateUserPassword
+);
+
+
 router.get('/profile', authMiddleware.authUser, userController.getUserProfile);
 
 router.get('/logout', authMiddleware.authUser, userController.logoutUser);

@@ -74,6 +74,29 @@ module.exports.getUserProfile = async (req, res, next) => {
 
 }
 
+module.exports.updateUserPassword = async (req, res, next) => {
+    
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) {
+            return res.status(400).json({ errors: errors.array() });
+        }
+    
+        const { oldPassword, newPassword } = req.body;
+    
+        const isMatch = await req.user.comparePassword(oldPassword);
+    
+        if (!isMatch) {
+            return res.status(401).json({ message: 'Invalid old password' });
+        }
+    
+        const hashedPassword = await userModel.hashPassword(newPassword);
+    
+        await userModel.findByIdAndUpdate(req.user._id, { password: hashedPassword });
+    
+        res.status(200).json({ message: 'Password updated successfully' });
+    
+    }
+
 module.exports.logoutUser = async (req, res, next) => {
     res.clearCookie('token');
     const token = req.cookies.token || req.headers.authorization.split(' ')[ 1 ];

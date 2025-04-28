@@ -29,6 +29,24 @@ router.post(
   adminController.loginAdmin
 );
 
+
+router.post(
+  "/update/password",
+  authMiddleware.authAdmin,
+  [
+    body("oldPassword")
+      .isLength({ min: 3 })
+      .withMessage("Old Password should be at least 3 characters long"),
+    body("newPassword")
+      .isLength({ min: 3 })
+      .withMessage("New Password should be at least 3 characters long"),
+  ],
+  adminController.updateAdminPassword
+);
+
+
+
+
 router.get('/profile', authMiddleware.authAdmin, adminController.getAdminProfile);
 
 router.get('/logout', authMiddleware.authAdmin, adminController.logoutAdmin);

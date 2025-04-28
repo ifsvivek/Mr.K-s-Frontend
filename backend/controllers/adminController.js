@@ -72,6 +72,30 @@ module.exports.getAdminProfile = async (req, res, next) => {
 
 }
 
+module.exports.updateAdminPassword = async (req, res, next) => {
+    
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) {
+            return res.status(400).json({ errors: errors.array() });
+        }
+    
+        const { oldPassword, newPassword } = req.body;
+    
+        const isMatch = await req.admin.comparePassword(oldPassword);
+    
+        if (!isMatch) {
+            return res.status(401).json({ message: 'Invalid old password' });
+        }
+    
+        const hashedPassword = await adminModel.hashPassword(newPassword);
+    
+        await adminModel.findByIdAndUpdate(req.admin._id, { password: hashedPassword });
+    
+        res.status(200).json({ message: 'Password updated successfully' });
+    
+    }
+
+
 module.exports.logoutAdmin = async (req, res, next) => {
     res.clearCookie('token');
     const token = req.cookies.token || req.headers.authorization.split(' ')[ 1 ];
