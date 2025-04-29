@@ -1,4 +1,4 @@
-const templeteModel = require("../models/templeteModel");
+const templeteModel = require("../models/templeteModel.js");
 const { validationResult } = require("express-validator");
 
 module.exports.createTemplate = async (req, res) => {

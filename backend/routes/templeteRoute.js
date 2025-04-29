@@ -2,6 +2,7 @@ const express = require("express");
 const { body } = require("express-validator");
 const templateController = require("../controllers/templeteController");
 const authMiddleware = require("../middlewares/authMiddleware");
+
 const router = express.Router();
 
 router.post(
@@ -10,7 +11,6 @@ router.post(
     [
         body("name").notEmpty().withMessage("Template name is required"),
         body("description").notEmpty().withMessage("Description is required"),
-        // body("thumbnail").notEmpty().withMessage("Thumbnail is required"),
         body("structure").notEmpty().withMessage("Structure is required"),
         body("style").notEmpty().withMessage("Style is required"),
     ],
@@ -34,6 +34,7 @@ router.put(
     templateController.updateTemplate
 );
 
+// DELETE Template
 router.delete("/delete/:id", authMiddleware.authAdmin, templateController.deleteTemplate);
 
 module.exports = router;

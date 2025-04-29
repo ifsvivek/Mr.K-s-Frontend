@@ -1,10 +1,11 @@
 const express = require("express");
 const { body } = require("express-validator");
-const resumeController = require("../controllers/resumeController");
-const authMiddleware = require("../middlewares/authMiddleware");
+const resumeController = require("../controllers/resumeController.js");
+const authMiddleware = require("../middlewares/authMiddleware.js");
 
 const router = express.Router();
 
+// Create Resume
 router.post(
     "/create",
     authMiddleware.authUser,
@@ -16,10 +17,13 @@ router.post(
     resumeController.createResume
 );
 
+// Get All Resumes
 router.get("/getAll", authMiddleware.authUser, resumeController.getAllResumes);
 
+// Get Resume By ID
 router.get("/get/:id", authMiddleware.authUser, resumeController.getResumeById);
 
+// Update Resume
 router.put(
     "/update/:id",
     authMiddleware.authUser,
@@ -31,6 +35,7 @@ router.put(
     resumeController.updateResume
 );
 
+// Delete Resume
 router.delete("/delete/:id", authMiddleware.authUser, resumeController.deleteResume);
 
 module.exports = router;
