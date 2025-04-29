@@ -34,7 +34,7 @@ export default function RootLayout() {
             </nav>
           </div>
           <div className="flex items-center gap-4">
-            <Link to="/admin">
+            <Link to="/admin-login">
               <Button variant="outline" size="sm">Admin</Button>
             </Link>
             <Link to="/user-login">

@@ -69,6 +69,7 @@
     "react-tsparticles": "^2.12.2",
     "react-vite-tailwind": "file:",
     "recharts": "^2.15.0",
+    "router": "^2.2.0",
     "slick-carousel": "^1.8.1",
     "sonner": "^2.0.3",
     "swiper": "^11.2.6",
