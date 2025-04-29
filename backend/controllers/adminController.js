@@ -1,6 +1,6 @@
-const adminModel = require('../models/adminModel');
+const adminModel = require('../models/adminModel.js');
 const { validationResult } = require('express-validator');
-const blackListTokenModel = require('../models/blackListTokenModel');
+const blackListTokenModel = require('../models/blackListTokenModel.js');
 
 module.exports.registerAdmin = async (req, res, next) => {
 

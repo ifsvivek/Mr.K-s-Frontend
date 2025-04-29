@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { FcGoogle } from "react-icons/fc";
 import { FaLinkedin } from "react-icons/fa";
-import axios from "axios";
+import axios from 'axios';
 import { Link } from "react-router-dom";
 
 export default function UserLoginPage() {
@@ -62,16 +62,15 @@ export default function UserLoginPage() {
             Login
           </Button>
           <div className="mt-6 text-center text-sm text-zinc-400">
-              Need an user account?{" "}
-              <Link 
-                to="/user-signup" 
-                className="font-medium text-blue-500 hover:text-blue-400 transition-colors"
-              >
-                Sign Up
-              </Link>
-            </div>
+            Need an user account?{" "}
+            <Link 
+              to="/user-signup" 
+              className="font-medium text-blue-500 hover:text-blue-400 transition-colors"
+            >
+              Sign Up
+            </Link>
+          </div>
         </CardContent>
-        
       </Card>
     </div>
   );

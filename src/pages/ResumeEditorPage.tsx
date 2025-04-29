@@ -16,8 +16,16 @@ import { useResumeStore, type ResumeData } from "@/lib/store/resumeStore";
 // Import AI Suggestions component
 import AiSuggestions from "@/features/resume-editor/AiSuggestions";
 
+// Type for AI suggestion
+interface AISuggestion {
+  section: string;
+  field?: string;
+  itemId?: string;
+  improvement: string;
+}
+
 export default function ResumeEditorPage() {
-  const { resumeId } = useParams();
+  const { resumeId } = useParams<{ resumeId?: string }>();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("edit");
@@ -91,7 +99,7 @@ export default function ResumeEditorPage() {
   };
 
   // Handle applying AI suggestions
-  const handleApplySuggestion = (suggestion: any) => {
+  const handleApplySuggestion = (suggestion: AISuggestion) => {
     if (!currentResume) return;
 
     const { section, field, itemId, improvement } = suggestion;
