@@ -1,151 +1,415 @@
-import { Outlet, Link, useNavigate } from "react-router-dom";
-import { useEffect, useState, useContext } from "react";
-import { motion } from "framer-motion";
-import { AuthContext } from "@/Context/AuthContext";
-import { FaUserCircle } from "react-icons/fa";
+import { Outlet, Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { useEffect, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  FiTwitter,
+  FiGithub,
+  FiLinkedin,
+  FiMail,
+  FiUser,
+  FiFileText,
+  FiLayout,
+  FiSun,
+  FiMoon,
+} from "react-icons/fi";
 
 export default function RootLayout() {
   const [footerVisible, setFooterVisible] = useState(false);
-  const { user, admin, logout, role } = useContext(AuthContext);
-  const isLoggedIn = !!user || !!admin;
-  const navigate = useNavigate();
+  const [isScrolled, setIsScrolled] = useState(false);
+  const [darkMode, setDarkMode] = useState(false);
+  const location = useLocation();
 
+  // Initialize dark mode
+  useEffect(() => {
+    const savedMode = localStorage.getItem("theme");
+    if (savedMode) {
+      setDarkMode(savedMode === "dark");
+    } else if (window.matchMedia("(prefers-color-scheme: dark)").matches) {
+      setDarkMode(true);
+    }
+  }, []);
+
+  // Apply dark mode class to document
+  useEffect(() => {
+    if (darkMode) {
+      document.documentElement.classList.add("dark");
+      localStorage.setItem("theme", "dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+      localStorage.setItem("theme", "light");
+    }
+  }, [darkMode]);
+
+  // Footer animation
   useEffect(() => {
     const timeout = setTimeout(() => {
       setFooterVisible(true);
     }, 100);
-    return () => clearTimeout(timeout);
+
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 10);
+    };
+
+    window.addEventListener("scroll", handleScroll);
+    return () => {
+      clearTimeout(timeout);
+      window.removeEventListener("scroll", handleScroll);
+    };
   }, []);
 
-  const handleLogout = () => {
-    logout();
-    navigate("/");
+  const toggleDarkMode = () => {
+    setDarkMode(!darkMode);
   };
 
+  const navLinks = [
+    {
+      path: "/dashboard",
+      name: "My Resumes",
+      icon: <FiFileText className="mr-1" />,
+    },
+    {
+      path: "/templates",
+      name: "Templates",
+      icon: <FiLayout className="mr-1" />,
+    },
+    {
+      path: "/editor",
+      name: "Create Resume",
+      icon: <FiUser className="mr-1" />,
+    },
+  ];
+  const MotionButton = motion(Button);
+
   return (
-    <div className="min-h-screen flex flex-col bg-background text-foreground">
-      {/* Header */}
-      <header className="border-b">
+    <div className="min-h-screen flex flex-col bg-gradient-to-br from-background to-gray-50 dark:to-slate-900 text-foreground">
+      {/* Animated Header with scroll effect */}
+      <motion.header
+        className={`fixed w-full z-50 transition-all duration-300 ${isScrolled ? "border-b bg-white/90 dark:bg-slate-900/90 backdrop-blur-md py-2 shadow-sm" : "border-b border-transparent py-4"}`}
+        initial={{ y: -100 }}
+        animate={{ y: 0 }}
+        transition={{ type: "spring", stiffness: 300, damping: 30 }}
+      >
         <div className="container flex h-16 items-center justify-between">
           <div className="flex items-center gap-6">
             <Link to="/" className="font-bold text-xl flex items-center">
-              <span className="text-primary">Mr.K's</span>CV
+              <motion.span
+                className="text-primary"
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                Mr.K's
+              </motion.span>
+              <span className="ml-1">CV</span>
             </Link>
-            <nav className="flex items-center gap-4">
-              <Link to="/dashboard" className="text-sm font-medium hover:text-primary">
-                My Resumes
-              </Link>
-              <Link to="/templates" className="text-sm font-medium hover:text-primary">
-                Templates
-              </Link>
-              {(user || admin) && (
-                <Link to="/editor" className="text-sm font-medium hover:text-primary">
-                  Create Resume
+
+            <nav className="hidden md:flex items-center gap-4">
+              {navLinks.map((link) => (
+                <Link
+                  key={link.path}
+                  to={link.path}
+                  className="text-sm font-medium hover:text-primary flex items-center transition-all"
+                >
+                  <motion.div
+                    className="flex items-center"
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                  >
+                    {link.icon}
+                    {link.name}
+                  </motion.div>
+                  {location.pathname === link.path && (
+                    <motion.div
+                      layoutId="navIndicator"
+                      className="h-0.5 bg-primary w-full absolute bottom-0"
+                      initial={false}
+                      transition={{
+                        type: "spring",
+                        stiffness: 500,
+                        damping: 30,
+                      }}
+                    />
+                  )}
                 </Link>
-              )}
+              ))}
             </nav>
           </div>
 
-          {/* Right-side Navigation */}
           <div className="flex items-center gap-4">
-            {isLoggedIn ? (
-              <>
-                <Link 
-                  to={admin ? "/admin-dashboard" : "/dashboard"} 
-                  className="flex items-center gap-2"
-                >
-                  <FaUserCircle className="text-2xl text-blue-600" />
-                  {admin && (
-                    <span className="text-sm font-medium">Admin Dashboard</span>
-                  )}
-                </Link>
-                <Button 
-                  onClick={handleLogout} 
-                  variant="ghost" 
-                  className="text-sm"
-                >
-                  Logout
+            {/* Dark/Light Mode Toggle */}
+            <motion.button
+              onClick={toggleDarkMode}
+              className="p-2 rounded-full bg-gray-200 dark:bg-gray-800 text-gray-700 dark:text-gray-300"
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              aria-label="Toggle dark mode"
+            >
+              {darkMode ? <FiSun className="w-5 h-5" /> : <FiMoon className="w-5 h-5" />}
+            </motion.button>
+
+            <Link to="/dashboard">
+              <motion.div
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                className="inline-block"
+              >
+                <Button size="sm" className="hidden sm:inline-flex">
+                  Dashboard
                 </Button>
-              </>
-            ) : (
-              <>
-                <Link 
-                  to="/user-login" 
-                  className="text-sm text-blue-600 font-medium hover:underline"
+              </motion.div>
+            </Link>
+
+            <Link to="/user-login">
+              <motion.div
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                className="inline-block"
+              >
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="hidden sm:inline-flex"
                 >
-                  Sign In
-                </Link>
-                <Link 
-                  to="/user-signup" 
-                  className="text-sm text-blue-600 font-medium hover:underline"
+                  Sign Up
+                </Button>
+              </motion.div>
+            </Link>
+            <Link to="/admin-login">
+              <motion.span
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                className="inline-block"
+              >
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-muted-foreground hover:text-primary"
                 >
-                  Create Account
-                </Link>
-                <Link 
-                  to="/admin-login" 
-                  className="text-sm text-blue-600 font-medium hover:underline"
-                >
-                  Admin Login
-                </Link>
-              </>
-            )}
+                  <FiUser className="mr-1" />
+                  <span className="hidden sm:inline">Admin</span>
+                </Button>
+              </motion.span>
+            </Link>
           </div>
         </div>
-      </header>
+      </motion.header>
 
-      {/* Main Content */}
-      <main className="flex-1">
-        <Outlet />
+      {/* Main content with page transitions */}
+      <main className="flex-1 pt-24">
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={location.pathname}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ duration: 0.3 }}
+          >
+            <Outlet />
+          </motion.div>
+        </AnimatePresence>
       </main>
 
-      {/* Footer */}
-      <motion.footer
-        initial={{ opacity: 0, y: 40 }}
-        animate={footerVisible ? { opacity: 1, y: 0 } : {}}
-        transition={{ duration: 0.7, ease: "easeOut" }}
-        className="mt-10 py-10 px-6 border-t backdrop-blur-md bg-white/60 dark:bg-slate-900/40 shadow-inner"
+      {/* Floating CTA */}
+      <motion.div
+        className="fixed bottom-6 right-6 z-40"
+        initial={{ opacity: 0, y: 100 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.5, duration: 0.5 }}
       >
-        <div className="container mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
-          {/* Branding */}
-          <div className="text-center md:text-left">
-            <Link to="/" className="font-bold text-xl flex items-center">
-              <span className="text-primary">Mr.K's</span>CV
-            </Link>
-            <p className="text-sm text-muted-foreground mt-1">
-              &copy; {new Date().getFullYear()} All rights reserved.
-            </p>
-          </div>
+        <Link to="/editor">
+          <MotionButton
+            size="lg"
+            className="rounded-full shadow-lg hover:shadow-xl transition-shadow"
+            whileHover={{ scale: 1.05, rotate: 2 }}
+            whileTap={{ scale: 0.95 }}
+          >
+            Create Resume Now
+          </MotionButton>
+        </Link>
+      </motion.div>
 
-          {/* Navigation */}
-          <div className="flex gap-6 flex-wrap items-center justify-center text-sm">
-            <Link to="/dashboard" className="hover:text-primary transition hover:scale-105">
-              My Resumes
-            </Link>
-            <Link to="/templates" className="hover:text-primary transition hover:scale-105">
-              Templates
-            </Link>
-            {(user || admin) && (
-              <Link to="/editor" className="hover:text-primary transition hover:scale-105">
-                Create Resume
-              </Link>
-            )}
-          </div>
-
-          {/* Social Icons */}
-          <div className="flex gap-4">
-            <a href="#" className="hover:scale-110 transition-transform">
-              <svg
-                className="w-5 h-5 text-muted-foreground hover:text-blue-500"
-                fill="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path d="M22.46 6c-.77.35-1.6.58-2.46.69a4.3 4.3 0 001.88-2.38c-.84.5-1.76.86-2.75 1.05a4.3 4.3 0 00-7.5 3.93 12.2 12.2 0 01-8.87-4.5 4.3 4.3 0 001.33 5.74A4.3 4.3 0 012 9.54v.05a4.3 4.3 0 003.45 4.21 4.3 4.3 0 01-1.93.07 4.3 4.3 0 004.02 2.99A8.6 8.6 0 012 19.54a12.2 12.2 0 006.6 1.94c7.93 0 12.26-6.56 12.26-12.26 0-.19 0-.38-.01-.57A8.7 8.7 0 0024 4.56a8.52 8.52 0 01-2.54.7z" />
-              </svg>
-            </a>
-          </div>
+      {/* Enhanced Dynamic Footer */}
+<motion.footer
+  initial={{ opacity: 0, y: 40 }}
+  animate={footerVisible ? { opacity: 1, y: 0 } : {}}
+  transition={{ duration: 0.7, ease: "easeOut" }}
+  className="mt-20 py-16 px-6 border-t backdrop-blur-md bg-white/80 dark:bg-slate-900/70"
+>
+  <div className="container mx-auto">
+    <div className="grid grid-cols-1 md:grid-cols-5 gap-10">
+      {/* Brand Column - Wider */}
+      <div className="md:col-span-2 space-y-6">
+        <Link to="/" className="font-bold text-2xl flex items-center">
+          <motion.span
+            className="text-primary"
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.9 }}
+          >
+            Mr.K's
+          </motion.span>
+          <span className="ml-2">Resume Builder</span>
+        </Link>
+        <p className="text-muted-foreground text-lg">
+          The ultimate tool for creating professional resumes that get you hired faster.
+        </p>
+        
+        {/* Dynamic Stats */}
+        <div className="grid grid-cols-3 gap-4">
+          {[
+            { value: "10K+", label: "Users" },
+            { value: "50+", label: "Templates" },
+            { value: "95%", label: "Success Rate" },
+          ].map((stat, index) => (
+            <motion.div 
+              key={index}
+              className="bg-white dark:bg-slate-800 p-4 rounded-lg shadow-sm text-center"
+              whileHover={{ y: -5 }}
+            >
+              <p className="text-2xl font-bold text-primary">{stat.value}</p>
+              <p className="text-sm text-muted-foreground">{stat.label}</p>
+            </motion.div>
+          ))}
         </div>
-      </motion.footer>
+        
+        {/* Social Media - Larger */}
+        <div className="flex gap-5">
+          {[
+            {
+              icon: <FiTwitter className="w-6 h-6" />,
+              color: "hover:text-blue-400",
+              label: "Twitter"
+            },
+            {
+              icon: <FiGithub className="w-6 h-6" />,
+              color: "hover:text-gray-700 dark:hover:text-gray-300",
+              label: "GitHub"
+            },
+            {
+              icon: <FiLinkedin className="w-6 h-6" />,
+              color: "hover:text-blue-600",
+              label: "LinkedIn"
+            },
+            {
+              icon: <FiMail className="w-6 h-6" />,
+              color: "hover:text-red-500",
+              label: "Email"
+            },
+          ].map((social, index) => (
+            <motion.a
+              key={index}
+              href="#"
+              className={`flex flex-col items-center text-muted-foreground ${social.color} transition-colors`}
+              whileHover={{ y: -3 }}
+              whileTap={{ scale: 0.9 }}
+            >
+              {social.icon}
+              <span className="text-xs mt-1">{social.label}</span>
+            </motion.a>
+          ))}
+        </div>
+      </div>
+
+      {/* Navigation Columns */}
+      <div>
+        <h3 className="text-xl font-semibold mb-6">Quick Links</h3>
+        <ul className="space-y-4">
+          {navLinks.map((link) => (
+            <motion.li key={link.path} whileHover={{ x: 5 }}>
+              <Link
+                to={link.path}
+                className="text-lg text-muted-foreground hover:text-primary flex items-center gap-2"
+              >
+                {link.icon}
+                {link.name}
+              </Link>
+            </motion.li>
+          ))}
+        </ul>
+      </div>
+
+      <div>
+        <h3 className="text-xl font-semibold mb-6">Resources</h3>
+        <ul className="space-y-4">
+          {[
+            { name: "Resume Guide", path: "/guide", icon: <FiFileText className="w-5 h-5" /> },
+            { name: "Blog", path: "/blog", icon: <FiFileText className="w-5 h-5" /> },
+            { name: "Tutorials", path: "/tutorials", icon: <FiFileText className="w-5 h-5" /> },
+            { name: "Webinars", path: "/webinars", icon: <FiFileText className="w-5 h-5" /> },
+          ].map((item) => (
+            <motion.li key={item.path} whileHover={{ x: 5 }}>
+              <Link
+                to={item.path}
+                className="text-lg text-muted-foreground hover:text-primary flex items-center gap-2"
+              >
+                {item.icon}
+                {item.name}
+              </Link>
+            </motion.li>
+          ))}
+        </ul>
+      </div>
+
+      {/* Newsletter - Enhanced */}
+      <div className="space-y-6">
+        <h3 className="text-xl font-semibold">Stay Updated</h3>
+        <p className="text-lg text-muted-foreground">
+          Get the latest resume tips and job search advice.
+        </p>
+        
+        <motion.div 
+          className="space-y-4"
+          whileHover={{ scale: 1.01 }}
+        >
+          <input
+            type="email"
+            placeholder="Your email address"
+            className="w-full px-4 py-3 text-base border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+          />
+          <MotionButton
+            className="w-full py-3 text-lg"
+            whileHover={{ scale: 1.03 }}
+            whileTap={{ scale: 0.97 }}
+          >
+            Subscribe Now
+          </MotionButton>
+        </motion.div>
+        
+        <p className="text-xs text-muted-foreground">
+          We respect your privacy. Unsubscribe at any time.
+        </p>
+      </div>
+    </div>
+
+    {/* Copyright - Enhanced */}
+    <motion.div 
+      className="border-t mt-12 pt-8 flex flex-col md:flex-row justify-between items-center gap-4"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ delay: 0.3 }}
+    >
+      <div className="text-muted-foreground text-center md:text-left">
+        &copy; {new Date().getFullYear()} Mr.K's Resume Builder. All rights reserved.
+      </div>
+      
+      <div className="flex gap-6">
+        {[
+          { name: "Privacy Policy", path: "/privacy" },
+          { name: "Terms of Service", path: "/terms" },
+          { name: "Cookie Policy", path: "/cookies" },
+        ].map((item) => (
+          <motion.div key={item.path} whileHover={{ y: -2 }}>
+            <Link
+              to={item.path}
+              className="text-sm text-muted-foreground hover:text-primary"
+            >
+              {item.name}
+            </Link>
+          </motion.div>
+        ))}
+      </div>
+    </motion.div>
+  </div>
+</motion.footer>
     </div>
   );
 }

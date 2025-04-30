@@ -57,31 +57,7 @@ const containerVariants = {
 
 const HomePage = () => {
   const { ref, inView } = useInView({ triggerOnce: true });
-  
-  const [darkMode, setDarkMode] = useState<boolean>(false);
 
-  useEffect(() => {
-    const savedMode = localStorage.getItem("theme");
-    if (savedMode) {
-      setDarkMode(savedMode === "dark");
-    } else if (window.matchMedia("(prefers-color-scheme: dark)").matches) {
-      setDarkMode(true);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (darkMode) {
-      document.documentElement.classList.add("dark");
-    } else {
-      document.documentElement.classList.remove("dark");
-    }
-  }, [darkMode]);
-
-  const toggleDarkMode = () => {
-    const newMode = !darkMode;
-    setDarkMode(newMode);
-    localStorage.setItem("theme", newMode ? "dark" : "light");
-  };
 
   const faqData = [
     {
@@ -261,16 +237,6 @@ const HomePage = () => {
             </Link>
           </motion.div>
         </motion.section>
-
-        {/* Dark Mode Toggle */}
-        <div className="absolute top-4 right-4">
-          <button
-            onClick={toggleDarkMode}
-            className="p-2 rounded-full bg-gray-200 dark:bg-gray-800 text-black dark:text-white transition-colors duration-300"
-          >
-            {darkMode ? "Light Mode" : "Dark Mode"}
-          </button>
-        </div>
 
         {/* Stats Section */}
         <motion.section
