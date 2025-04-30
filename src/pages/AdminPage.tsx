@@ -1,11 +1,12 @@
-import { useState } from "react";
+import { useState, useContext } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
+import axios from "axios";
+import { AuthContext } from "@/Context/AuthContext";
 
-// Placeholder templates data
 const initialTemplates = [
   {
     id: "template-1",
@@ -38,16 +39,27 @@ export default function AdminPage() {
     thumbnail: "",
   });
 
+  const { logout } = useContext(AuthContext);
+
+  const handleLogout = async () => {
+    try {
+      await axios.post("http://localhost:5000/api/admin/logout", {}, { withCredentials: true });
+      logout(); // Clear context and local storage
+      toast.success("Logged out successfully");
+      window.location.href = "/admin-login"; // Redirect to login page
+    } catch (error) {
+      toast.error("Logout failed");
+    }
+  };
+
   const handleAddTemplate = (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Validation
     if (!newTemplate.name.trim() || !newTemplate.category.trim()) {
       toast.error("Please fill out all required fields");
       return;
     }
 
-    // Create new template object
     const templateToAdd = {
       id: `template-${Date.now()}`,
       name: newTemplate.name,
@@ -56,10 +68,8 @@ export default function AdminPage() {
       createdAt: new Date().toISOString(),
     };
 
-    // Add to templates array
     setTemplates([...templates, templateToAdd]);
 
-    // Reset form
     setNewTemplate({
       name: "",
       category: "",
@@ -70,7 +80,7 @@ export default function AdminPage() {
   };
 
   const handleDeleteTemplate = (id: string) => {
-    setTemplates(templates.filter(template => template.id !== id));
+    setTemplates(templates.filter((template) => template.id !== id));
     toast.success("Template deleted successfully");
   };
 
@@ -83,8 +93,6 @@ export default function AdminPage() {
   };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    // In a real implementation, this would upload the file to a server
-    // and then store the URL. For now, we'll just simulate this process.
     if (e.target.files && e.target.files[0]) {
       toast.success("Template HTML uploaded successfully");
     }
@@ -92,7 +100,12 @@ export default function AdminPage() {
 
   return (
     <div className="container py-10">
-      <h1 className="text-3xl font-bold mb-6">Admin Dashboard</h1>
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-3xl font-bold">Admin Dashboard</h1>
+        <Button variant="destructive" onClick={handleLogout}>
+          Logout
+        </Button>
+      </div>
 
       <Tabs defaultValue="templates">
         <TabsList className="mb-6">

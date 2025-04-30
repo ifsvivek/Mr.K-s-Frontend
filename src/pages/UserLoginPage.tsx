@@ -1,26 +1,34 @@
-import { useState } from "react";
+import { useState, useContext } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { FcGoogle } from "react-icons/fc";
 import { FaLinkedin } from "react-icons/fa";
-import axios from 'axios';
-import { Link } from "react-router-dom";
+import axios from "axios";
+import { Link, useNavigate } from "react-router-dom";
+import { AuthContext } from "@/Context/AuthContext";
 
 export default function UserLoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const { loginAsUser } = useContext(AuthContext);
+  const navigate = useNavigate();
 
   const handleLogin = async () => {
     try {
       const response = await axios.post(
-        "http://localhost:1000/api/user/login",
+        "http://localhost:5000/api/user/login",
         { email, password },
         { withCredentials: true }
       );
-      window.location.href = "/dashboard";
+
+      const { user, token } = response.data;
+
+      loginAsUser(user, token); // Save to context and localStorage
+      navigate("/dashboard"); // Redirect after login
     } catch (err) {
       alert("Invalid credentials");
+      console.error(err);
     }
   };
 
@@ -34,7 +42,9 @@ export default function UserLoginPage() {
           <Button
             variant="outline"
             className="w-full flex items-center gap-2 justify-center"
-            onClick={() => window.location.href = "http://localhost:1000/api/user/auth/google"}
+            onClick={() =>
+              window.location.href = "http://localhost:1000/api/user/auth/google"
+            }
           >
             <FcGoogle size={20} />
             Continue with Google
@@ -43,19 +53,37 @@ export default function UserLoginPage() {
           <Button
             variant="outline"
             className="w-full flex items-center gap-2 justify-center"
-            onClick={() => window.location.href = "http://localhost:1000/api/user/auth/linkedin"}
+            onClick={() =>
+              window.location.href = "http://localhost:1000/api/user/auth/linkedin"
+            }
           >
             <FaLinkedin size={20} className="text-blue-700" />
             Continue with LinkedIn
           </Button>
 
           <div>
-            <label htmlFor="email" className="text-sm">Email</label>
-            <Input id="email" type="email" placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} />
+            <label htmlFor="email" className="text-sm">
+              Email
+            </label>
+            <Input
+              id="email"
+              type="email"
+              placeholder="you@example.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
           </div>
           <div>
-            <label htmlFor="password" className="text-sm">Password</label>
-            <Input id="password" type="password" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} />
+            <label htmlFor="password" className="text-sm">
+              Password
+            </label>
+            <Input
+              id="password"
+              type="password"
+              placeholder="••••••••"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
           </div>
 
           <Button className="w-full" onClick={handleLogin}>
@@ -63,8 +91,8 @@ export default function UserLoginPage() {
           </Button>
           <div className="mt-6 text-center text-sm text-zinc-400">
             Need an user account?{" "}
-            <Link 
-              to="/user-signup" 
+            <Link
+              to="/user-signup"
               className="font-medium text-blue-500 hover:text-blue-400 transition-colors"
             >
               Sign Up

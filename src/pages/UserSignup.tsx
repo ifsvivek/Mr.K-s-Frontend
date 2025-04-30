@@ -5,22 +5,24 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { FcGoogle } from "react-icons/fc";
 import { FaLinkedin } from "react-icons/fa";
 import axios from "axios";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 export default function UserSignup() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
   const [password, setPassword] = useState("");
+  const navigate = useNavigate();
 
   const handleSignup = async () => {
     try {
       const response = await axios.post(
-        "http://localhost:1000/api/user/register",
+        "http://localhost:5000/api/user/register",
         { name, email, phoneNumber, password },
         { withCredentials: true }
       );
-      window.location.href = "/dashboard";
+      // On successful signup, redirect the user to the dashboard
+      navigate("/dashboard");
     } catch (err) {
       alert("Signup failed. Please try again.");
     }
@@ -33,6 +35,7 @@ export default function UserSignup() {
           <CardTitle className="text-2xl text-center">Create an Account</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
+          {/* Google Sign-Up Button */}
           <Button
             variant="outline"
             className="w-full flex items-center gap-2 justify-center"
@@ -44,17 +47,19 @@ export default function UserSignup() {
             Sign Up with Google
           </Button>
 
+          {/* LinkedIn Sign-Up Button */}
           <Button
             variant="outline"
             className="w-full flex items-center gap-2 justify-center"
             onClick={() =>
-              (window.location.href = "http://localhost:1000/api/user/auth/linkedin")
+              (window.location.href = "http://localhost:5000/api/user/auth/linkedin")
             }
           >
             <FaLinkedin size={20} className="text-blue-700" />
             Sign Up with LinkedIn
           </Button>
 
+          {/* Name Input */}
           <div>
             <label htmlFor="name" className="text-sm">
               Name
@@ -68,6 +73,7 @@ export default function UserSignup() {
             />
           </div>
 
+          {/* Email Input */}
           <div>
             <label htmlFor="email" className="text-sm">
               Email
@@ -81,9 +87,10 @@ export default function UserSignup() {
             />
           </div>
 
+          {/* Phone Number Input */}
           <div>
             <label htmlFor="phoneNumber" className="text-sm">
-              PhoneNumber
+              Phone Number
             </label>
             <Input
               id="phoneNumber"
@@ -94,6 +101,7 @@ export default function UserSignup() {
             />
           </div>
 
+          {/* Password Input */}
           <div>
             <label htmlFor="password" className="text-sm">
               Password
@@ -107,18 +115,21 @@ export default function UserSignup() {
             />
           </div>
 
+          {/* Sign Up Button */}
           <Button className="w-full" onClick={handleSignup}>
             Sign Up
           </Button>
-        <div className="mt-6 text-center text-sm text-zinc-400">
-              Already have an account?{" "}
-              <Link 
-                to="/user-login" 
-                className="font-medium text-blue-500 hover:text-blue-400 transition-colors"
-              >
-                Login
-              </Link>
-            </div>
+
+          {/* Login Link */}
+          <div className="mt-6 text-center text-sm text-zinc-400">
+            Already have an account?{" "}
+            <Link
+              to="/user-login"
+              className="font-medium text-blue-500 hover:text-blue-400 transition-colors"
+            >
+              Login
+            </Link>
+          </div>
         </CardContent>
       </Card>
     </div>
