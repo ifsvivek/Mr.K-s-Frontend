@@ -22,7 +22,7 @@ export default function UserSignup() {
         { withCredentials: true }
       );
       // On successful signup, redirect the user to the dashboard
-      navigate("/dashboard");
+      navigate("/#");
     } catch (err) {
       alert("Signup failed. Please try again.");
     }
