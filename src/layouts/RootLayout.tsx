@@ -135,7 +135,7 @@ export default function RootLayout() {
           </motion.div>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-56">
-          <DropdownMenuItem onClick={() => navigate('/profile')}>
+          <DropdownMenuItem onClick={() => navigate('/dashboard')}>
             <FiUser className="mr-2" />
             Profile
           </DropdownMenuItem>
