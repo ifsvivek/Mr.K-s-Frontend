@@ -65,8 +65,8 @@ export interface ResumeData {
 interface Template {
   id: string;
   name: string;
-  category: string;
-  thumbnail: string;
+  thumbnail: string; // URL to template preview image
+  // ...other template properties
 }
 
 // Resume store
