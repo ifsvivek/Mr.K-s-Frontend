@@ -86,11 +86,11 @@ export default function DashboardPage() {
       const res = await axios.post(
         "http://localhost:5000/api/resume/create",
         {
-          templateId: "6810b8b3dba6020af814f1b9",
+          templateId: "65f1d3e8e0a7d3b1f4f5d8a9", // Replace with a valid template ID
           data: {
             personalInfo: {
               name: "Untitled Resume",
-              title: "No Title",
+              title: "Your Profession",
             },
           },
         },
@@ -98,9 +98,14 @@ export default function DashboardPage() {
           headers: { Authorization: `Bearer ${token}` },
         }
       );
+      
+      // Add the new resume to the state
+      setResumes([...resumes, res.data.newResume]);
+      
       navigate(`/editor/${res.data.newResume._id}`);
       toast.success("New resume created");
     } catch (err) {
+      console.error("Error creating resume:", err);
       toast.error("Failed to create resume");
     }
   };
@@ -145,7 +150,6 @@ export default function DashboardPage() {
             title: resumes.find(r => r._id === resumeToRename)?.data?.personalInfo?.title || '',
           },
         },
-        templateId: "YOUR_DEFAULT_TEMPLATE_ID",
       };
 
       const res = await axios.patch(
