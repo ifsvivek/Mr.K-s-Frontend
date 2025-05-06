@@ -32,6 +32,17 @@ const uploadResume = async (req, res) => {
   }
 };
 
+const getSingleResume = async (req, res) => {
+  try {
+    const file = await ResumeFile.findById(req.params.id);
+    if (!file) return res.status(404).json({ message: 'File not found' });
+
+    res.status(200).json(file);
+  } catch (error) {
+    res.status(500).json({ message: 'Fetching file failed', error: error.message });
+  }
+};
+
 // Download/view
 const downloadResume = async (req, res) => {
   try {
@@ -78,6 +89,7 @@ const getAllResumes = async (req, res) => {
 
 module.exports = {
   uploadResume,
+  getSingleResume,
   downloadResume,
   deleteResume,
   getAllResumes,
