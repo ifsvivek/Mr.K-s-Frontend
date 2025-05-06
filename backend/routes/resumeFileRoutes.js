@@ -13,6 +13,8 @@ const { upload, uploadToS3 } = require('../middlewares/uploadMiddleware');
 // Upload file
 router.post('/upload', authUser, upload.single('file'), uploadToS3, uploadResume);
 
+router.get('/singleResume/:id', getSingleResume);
+
 // Download/view file
 router.get('/download/:id', authUser, downloadResume);
 
