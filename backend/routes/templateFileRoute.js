@@ -20,6 +20,6 @@ router.get('/download/:id', authAdmin, downloadTemplete);
 router.delete('/delete/:id', authAdmin, deleteTemplete);
 
 // Get all files for Admin
-router.get('/all', authAdmin, getAllTempletes);
+router.get('/all', getAllTempletes);
 
 module.exports = router;

@@ -69,7 +69,7 @@ const deleteTemplete = async (req, res) => {
 // Get all files for logged-in admin
 const getAllTempletes = async (req, res) => {
   try {
-    const files = await TempleteFile.find({ uploadedBy: req.admin._id });
+    const files = await TempleteFile.find();
     res.status(200).json(files);
   } catch (error) {
     res.status(500).json({ message: 'Fetching files failed', error: error.message });
