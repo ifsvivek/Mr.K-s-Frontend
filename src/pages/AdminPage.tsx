@@ -13,8 +13,7 @@ interface Template {
   name: string;
   description: string;
   thumbnail: string;
-  structure: string;
-  style: string;
+  htmlFile: string;
   createdBy: {
     name: string;
     email: string;
@@ -30,8 +29,7 @@ export default function AdminPage() {
     name: "",
     description: "",
     thumbnail: "",
-    structure: "",
-    style: ""
+    htmlFile: ""
   });
 
   // Fetch templates from database
@@ -67,8 +65,7 @@ export default function AdminPage() {
       formData.append('name', newTemplate.name);
       formData.append('description', newTemplate.description);
       formData.append('thumbnail', newTemplate.thumbnail);
-      formData.append('structure', newTemplate.structure);
-      formData.append('style', newTemplate.style);
+      formData.append('htmlFile', newTemplate.htmlFile);
 
       const response = await axios.post(
         "http://localhost:5000/api/template/create",
@@ -86,8 +83,7 @@ export default function AdminPage() {
         name: "",
         description: "",
         thumbnail: "",
-        structure: "",
-        style: ""
+        htmlFile: ""
       });
       toast.success("Template created successfully");
     } catch (error) {
@@ -118,9 +114,9 @@ export default function AdminPage() {
     if (e.target.files && e.target.files[0]) {
       setNewTemplate({
         ...newTemplate,
-        thumbnail: e.target.files[0]
+        [e.target.name]: e.target.files[0]
       });
-      toast.success("Thumbnail uploaded");
+      toast.success("File uploaded");
     }
   };
 
@@ -239,30 +235,17 @@ export default function AdminPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <label htmlFor="structure" className="text-sm font-medium">
-                    Structure (HTML)
+                  <label htmlFor="htmlFile" className="text-sm font-medium">
+                    HTML File*
                   </label>
-                  <Textarea
-                    id="structure"
-                    name="structure"
-                    value={newTemplate.structure}
-                    onChange={handleInputChange}
-                    placeholder="HTML structure"
-                    rows={6}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <label htmlFor="style" className="text-sm font-medium">
-                    Style (CSS)
-                  </label>
-                  <Textarea
-                    id="style"
-                    name="style"
-                    value={newTemplate.style}
-                    onChange={handleInputChange}
-                    placeholder="CSS styles"
-                    rows={6}
+                  <Input
+                    id="htmlFile"
+                    name="htmlFile"
+                    type="file"
+                    accept=".html,.htm"
+                    onChange={handleFileUpload}
+                    className="cursor-pointer"
+                    required
                   />
                 </div>
 
