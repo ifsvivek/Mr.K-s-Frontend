@@ -10,14 +10,13 @@ import { AuthContext } from "@/Context/AuthContext";
 
 interface Template {
   _id: string;
-  name: string;
-  description: string;
-  thumbnail: string;
-  htmlFile: string;
-  createdBy: {
-    name: string;
-    email: string;
-  };
+  title: string;
+  filename: string;
+  path: string;
+  mimetype: string;
+  size: number;
+  uploadedBy: string;
+  createdAt: string;
 }
 
 export default function AdminPage() {
@@ -26,10 +25,8 @@ export default function AdminPage() {
   const { admin, logout } = useContext(AuthContext);
 
   const [newTemplate, setNewTemplate] = useState({
-    name: "",
-    description: "",
-    thumbnail: "",
-    htmlFile: ""
+    title: "",
+    file: null as File | null // Changed from docxFile to file
   });
 
   // Fetch templates from database
@@ -37,10 +34,10 @@ export default function AdminPage() {
     const fetchTemplates = async () => {
       setIsLoading(true);
       try {
-        const res = await axios.get("http://localhost:5000/api/template/getAll", {
+        const res = await axios.get("http://localhost:5000/api/templateFile/all", {
           withCredentials: true,
         });
-        setTemplates(res.data.templates);
+        setTemplates(res.data);
       } catch (err) {
         toast.error("Failed to fetch templates");
         console.error(err);
@@ -55,20 +52,20 @@ export default function AdminPage() {
   const handleAddTemplate = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!newTemplate.name.trim() || !newTemplate.description.trim()) {
+    if (!newTemplate.title.trim() || !newTemplate.file) {
       toast.error("Please fill out all required fields");
       return;
     }
 
     try {
       const formData = new FormData();
-      formData.append('name', newTemplate.name);
-      formData.append('description', newTemplate.description);
-      formData.append('thumbnail', newTemplate.thumbnail);
-      formData.append('htmlFile', newTemplate.htmlFile);
+      formData.append('title', newTemplate.title);
+      if (newTemplate.file) {
+        formData.append('file', newTemplate.file); // Changed from docxFile to file
+      }
 
       const response = await axios.post(
-        "http://localhost:5000/api/template/create",
+        "http://localhost:5000/api/templateFile/upload",
         formData,
         {
           withCredentials: true,
@@ -78,23 +75,21 @@ export default function AdminPage() {
         }
       );
 
-      setTemplates([...templates, response.data.newTemplate]);
+      setTemplates([...templates, response.data]);
       setNewTemplate({
-        name: "",
-        description: "",
-        thumbnail: "",
-        htmlFile: ""
+        title: "",
+        file: null
       });
-      toast.success("Template created successfully");
+      toast.success("Resume template uploaded successfully");
     } catch (error) {
       console.error(error);
-      toast.error("Failed to create template");
+      toast.error("Failed to upload template");
     }
   };
 
   const handleDeleteTemplate = async (id: string) => {
     try {
-      await axios.delete(`http://localhost:5000/api/template/delete/${id}`, {
+      await axios.delete(`http://localhost:5000/api/templateFile/delete/${id}`, {
         withCredentials: true,
       });
       setTemplates(templates.filter(template => template._id !== id));
@@ -114,10 +109,14 @@ export default function AdminPage() {
     if (e.target.files && e.target.files[0]) {
       setNewTemplate({
         ...newTemplate,
-        [e.target.name]: e.target.files[0]
+        file: e.target.files[0] // Changed from docxFile to file
       });
-      toast.success("File uploaded");
+      toast.success("DOCX file selected");
     }
+  };
+
+  const handlePreviewTemplate = (path: string) => {
+    window.open(`https://docs.google.com/viewer?url=${encodeURIComponent(path)}`, '_blank');
   };
 
   return (
@@ -134,7 +133,7 @@ export default function AdminPage() {
 
       <Tabs defaultValue="templates">
         <TabsList className="mb-6">
-          <TabsTrigger value="templates">Templates</TabsTrigger>
+          <TabsTrigger value="templates">Resume Templates</TabsTrigger>
           <TabsTrigger value="add-template">Add Template</TabsTrigger>
         </TabsList>
 
@@ -152,24 +151,29 @@ export default function AdminPage() {
               {templates.map((template) => (
                 <Card key={template._id}>
                   <CardHeader className="pb-2">
-                    <CardTitle>{template.name}</CardTitle>
+                    <CardTitle>{template.title}</CardTitle>
                   </CardHeader>
                   <CardContent className="p-0">
-                    <img
-                      src={template.thumbnail}
-                      alt={template.name}
-                      className="aspect-[3/4] w-full object-cover"
-                    />
                     <div className="p-4">
                       <p className="text-sm text-muted-foreground mb-2">
-                        {template.description}
+                        {template.filename}
                       </p>
                       <p className="text-xs text-muted-foreground">
-                        Created by: {template.createdBy?.name}
+                        Uploaded on: {new Date(template.createdAt).toLocaleDateString()}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        Size: {(template.size / 1024).toFixed(2)} KB
                       </p>
                     </div>
                   </CardContent>
                   <CardFooter className="flex justify-between pt-4">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handlePreviewTemplate(template.path)}
+                    >
+                      Preview
+                    </Button>
                     <Button
                       variant="destructive"
                       size="sm"
@@ -187,62 +191,33 @@ export default function AdminPage() {
         <TabsContent value="add-template">
           <Card className="max-w-2xl mx-auto">
             <CardHeader>
-              <CardTitle>Add New Template</CardTitle>
+              <CardTitle>Add New Resume Template</CardTitle>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleAddTemplate} className="space-y-4">
                 <div className="space-y-2">
-                  <label htmlFor="name" className="text-sm font-medium">
-                    Template Name*
+                  <label htmlFor="title" className="text-sm font-medium">
+                    Template Title*
                   </label>
                   <Input
-                    id="name"
-                    name="name"
-                    value={newTemplate.name}
+                    id="title"
+                    name="title"
+                    value={newTemplate.title}
                     onChange={handleInputChange}
-                    placeholder="Template name"
+                    placeholder="Template title"
                     required
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <label htmlFor="description" className="text-sm font-medium">
-                    Description*
-                  </label>
-                  <Textarea
-                    id="description"
-                    name="description"
-                    value={newTemplate.description}
-                    onChange={handleInputChange}
-                    placeholder="Template description"
-                    required
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <label htmlFor="thumbnail" className="text-sm font-medium">
-                    Thumbnail*
+                  <label htmlFor="file" className="text-sm font-medium">
+                    DOCX File*
                   </label>
                   <Input
-                    id="thumbnail"
-                    name="thumbnail"
+                    id="file"
+                    name="file" // Changed from docxFile to file
                     type="file"
-                    accept="image/*"
-                    onChange={handleFileUpload}
-                    className="cursor-pointer"
-                    required
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <label htmlFor="htmlFile" className="text-sm font-medium">
-                    HTML File*
-                  </label>
-                  <Input
-                    id="htmlFile"
-                    name="htmlFile"
-                    type="file"
-                    accept=".html,.htm"
+                    accept=".doc,.docx,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
                     onChange={handleFileUpload}
                     className="cursor-pointer"
                     required
@@ -250,7 +225,7 @@ export default function AdminPage() {
                 </div>
 
                 <div className="pt-2">
-                  <Button type="submit">Create Template</Button>
+                  <Button type="submit">Upload Template</Button>
                 </div>
               </form>
             </CardContent>
