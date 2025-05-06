@@ -22,6 +22,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   loginAsAdmin: (admin: Admin, token: string) => void;
   loginAsUser: (user: User, token: string) => void;
+  register: (userData: User, tokenData: string) => void;
   logout: () => void;
 }
 
@@ -33,6 +34,7 @@ export const AuthContext = createContext<AuthContextType>({
   isAuthenticated: false,
   loginAsAdmin: () => {},
   loginAsUser: () => {},
+  register: () => {},
   logout: () => {},
 });
 
@@ -84,6 +86,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     localStorage.setItem("role", "user");
   };
 
+  const register = (userData: User, tokenData: string) => {
+    loginAsUser(userData, tokenData); // Reuse login functionality
+  };
+
   const logout = () => {
     setUser(null);
     setAdmin(null);
@@ -98,7 +104,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     if (token) {
       axios
         .post(
-          "http://localhost:1000/api/user/logout",
+          "http://localhost:5000/api/user/logout",
           {},
           {
             headers: {
@@ -121,6 +127,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         isAuthenticated,
         loginAsAdmin,
         loginAsUser,
+        register,
         logout,
       }}
     >
@@ -129,7 +136,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   );
 };
 
-// ✅ Custom hook to access the AuthContext
 export const useAuthContext = () => {
   return useContext(AuthContext);
 };
