@@ -13,6 +13,7 @@
     "@aws-sdk/client-s3": "^3.803.0",
     "@aws-sdk/s3-request-presigner": "^3.802.0",
     "aws-sdk": "^2.1692.0",
+    "backend": "file:",
     "bcrypt": "^5.1.1",
     "cloudinary": "^2.6.0",
     "cookie-parser": "^1.4.7",

@@ -75,16 +75,35 @@ interface ResumePreviewProps {
   resumeData: ResumeData;
   template: Template | null;
   onUpdate: (updatedData: ResumeData) => void;
+  isEditable?: boolean;
+  sectionHeadings: {
+    summary: string;
+    experience: string;
+    education: string;
+    skills: string;
+    projects: string;
+    certifications: string;
+  };
+  onSectionHeadingUpdate: (section: string, newHeading: string) => void;
 }
 
-export default function ResumePreview({ resumeData, template, onUpdate }: ResumePreviewProps) {
+const ResumePreview = ({
+  resumeData,
+  template,
+  onUpdate,
+  defaultEditMode = true,
+  sectionHeadings,
+  onSectionHeadingUpdate
+}: ResumePreviewProps) => {
   const previewRef = useRef<HTMLDivElement>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const [editMode, setEditMode] = useState(false);
+  const [editMode, setEditMode] = useState(defaultEditMode);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingField, setEditingField] = useState<string | null>(null);
   const [localData, setLocalData] = useState<ResumeData>(resumeData);
+  const [editingSection, setEditingSection] = useState<string | null>(null);
+  const [tempHeading, setTempHeading] = useState("");
 
   // Effect to calculate and update the number of pages
   useEffect(() => {
@@ -100,6 +119,12 @@ export default function ResumePreview({ resumeData, template, onUpdate }: Resume
   useEffect(() => {
     setLocalData(resumeData);
   }, [resumeData]);
+
+  useEffect(() => {
+    if (previewRef.current) {
+      previewRef.current.scrollTop = (currentPage - 1) * 1056;
+    }
+  }, [currentPage]);
 
   // Format date from YYYY-MM to Month YYYY
   const formatDate = (dateString: string) => {
@@ -167,11 +192,57 @@ export default function ResumePreview({ resumeData, template, onUpdate }: Resume
       
       setLocalData(prev => ({
         ...prev,
-        [fieldType]: prev[fieldType].map((item: any) => 
-          item.id === id ? { ...item, [subField]: value } : item
-        )
+        [fieldType]: Array.isArray(prev[fieldType]) 
+          ? prev[fieldType].map((item: any) => 
+              item.id === id ? { ...item, [subField]: value } : item
+            )
+          : prev[fieldType]
       }));
     }
+  };
+
+  // Handle section heading click
+  const handleSectionHeadingClick = (section: keyof typeof sectionHeadings) => {
+    setEditingSection(section);
+    setTempHeading(sectionHeadings[section]);
+  };
+
+  // Handle heading change
+  const handleHeadingChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setTempHeading(e.target.value);
+  };
+
+  // Handle heading blur
+  const handleHeadingBlur = () => {
+    if (editingSection && tempHeading.trim() !== "") {
+      onSectionHeadingUpdate(editingSection, tempHeading);
+    }
+    setEditingSection(null);
+  };
+
+  // Render section heading
+  const renderSectionHeading = (section: keyof typeof sectionHeadings) => {
+    if (editingSection === section) {
+      return (
+        <input
+          type="text"
+          value={tempHeading}
+          onChange={handleHeadingChange}
+          onBlur={handleHeadingBlur}
+          onKeyDown={(e) => e.key === "Enter" && handleHeadingBlur()}
+          className="w-full px-2 py-1 text-lg font-bold border-b-2 border-primary focus:outline-none"
+          autoFocus
+        />
+      );
+    }
+    return (
+      <h2
+        className="text-lg font-bold cursor-pointer hover:text-primary"
+        onClick={() => handleSectionHeadingClick(section as keyof typeof sectionHeadings)}
+      >
+        {sectionHeadings[section]}
+      </h2>
+    );
   };
 
   // Render editable text
@@ -247,7 +318,7 @@ export default function ResumePreview({ resumeData, template, onUpdate }: Resume
       {/* Summary */}
       {localData.personalInfo.summary && (
         <section className="mb-6">
-          <h2 className="text-lg font-semibold mb-2 text-gray-800">Professional Summary</h2>
+          {renderSectionHeading("summary")}
           {renderEditableTextarea(localData.personalInfo.summary, null, 'summary')}
         </section>
       )}
@@ -255,7 +326,7 @@ export default function ResumePreview({ resumeData, template, onUpdate }: Resume
       {/* Experience */}
       {localData.experience.length > 0 && (
         <section className="mb-6">
-          <h2 className="text-lg font-semibold mb-3 text-gray-800 border-b border-gray-200 pb-1">Experience</h2>
+          {renderSectionHeading("experience")}
           <div className="space-y-4">
             {localData.experience.map((exp) => (
               <div key={exp.id}>
@@ -287,7 +358,7 @@ export default function ResumePreview({ resumeData, template, onUpdate }: Resume
       {/* Education */}
       {localData.education.length > 0 && (
         <section className="mb-6">
-          <h2 className="text-lg font-semibold mb-3 text-gray-800 border-b border-gray-200 pb-1">Education</h2>
+          {renderSectionHeading("education")}
           <div className="space-y-4">
             {localData.education.map((edu) => (
               <div key={edu.id}>
@@ -319,7 +390,7 @@ export default function ResumePreview({ resumeData, template, onUpdate }: Resume
       {/* Skills */}
       {localData.skills.length > 0 && (
         <section className="mb-6">
-          <h2 className="text-lg font-semibold mb-2 text-gray-800 border-b border-gray-200 pb-1">Skills</h2>
+          {renderSectionHeading("skills")}
           <div className="flex flex-wrap gap-x-4 gap-y-2">
             {localData.skills.map((skill) => (
               <div key={skill.id} className="flex items-center gap-1">
@@ -338,7 +409,7 @@ export default function ResumePreview({ resumeData, template, onUpdate }: Resume
       {/* Projects */}
       {localData.projects.length > 0 && (
         <section className="mb-6">
-          <h2 className="text-lg font-semibold mb-3 text-gray-800 border-b border-gray-200 pb-1">Projects</h2>
+          {renderSectionHeading("projects")}
           <div className="space-y-3">
             {localData.projects.map((project) => (
               <div key={project.id}>
@@ -364,7 +435,7 @@ export default function ResumePreview({ resumeData, template, onUpdate }: Resume
       {/* Certifications */}
       {localData.certifications.length > 0 && (
         <section>
-          <h2 className="text-lg font-semibold mb-3 text-gray-800 border-b border-gray-200 pb-1">Certifications</h2>
+          {renderSectionHeading("certifications")}
           <div className="space-y-3">
             {localData.certifications.map((cert) => (
               <div key={cert.id}>
@@ -390,364 +461,14 @@ export default function ResumePreview({ resumeData, template, onUpdate }: Resume
     </div>
   );
 
-  // Render the Classic template (similar edits as above would be needed)
-  const renderClassicTemplate = () => (
-    <div className="bg-white text-black px-8 py-10 max-w-[800px] mx-auto shadow-sm">
-      {/* Header */}
-      <header className="text-center mb-8">
-        <h1 className="text-2xl font-bold uppercase tracking-wider mb-1">
-          {renderEditableText(localData.personalInfo.name, null, 'name')}
-        </h1>
-        <p className="text-lg mb-3">
-          {renderEditableText(localData.personalInfo.title, null, 'title')}
-        </p>
-        <div className="flex justify-center flex-wrap gap-x-4 gap-y-1 text-sm">
-          {localData.personalInfo.email && (
-            <div>{renderEditableText(localData.personalInfo.email, null, 'email')}</div>
-          )}
-          {localData.personalInfo.phone && (
-            <div>{renderEditableText(localData.personalInfo.phone, null, 'phone')}</div>
-          )}
-          {localData.personalInfo.location && (
-            <div>{renderEditableText(localData.personalInfo.location, null, 'location')}</div>
-          )}
-        </div>
-      </header>
-
-      {/* Summary */}
-      {localData.personalInfo.summary && (
-        <section className="mb-6">
-          <h2 className="text-lg font-bold uppercase text-center mb-2 border-b border-gray-300 pb-1">Summary</h2>
-          {renderEditableTextarea(localData.personalInfo.summary, null, 'summary')}
-        </section>
-      )}
-
-      {/* Experience */}
-      {localData.experience.length > 0 && (
-        <section className="mb-6">
-          <h2 className="text-lg font-bold uppercase text-center mb-4 border-b border-gray-300 pb-1">Professional Experience</h2>
-          <div className="space-y-5">
-            {localData.experience.map((exp) => (
-              <div key={exp.id}>
-                <div className="flex justify-between items-baseline">
-                  <h3 className="font-bold">
-                    {renderEditableText(exp.company, exp.id, 'experience.company')}
-                  </h3>
-                  <span className="text-sm">
-                    {renderEditableText(exp.startDate, exp.id, 'experience.startDate')} - {renderEditableText(exp.endDate, exp.id, 'experience.endDate')}
-                  </span>
-                </div>
-                <div className="flex justify-between items-baseline mb-2">
-                  <p className="italic">
-                    {renderEditableText(exp.title, exp.id, 'experience.title')}
-                  </p>
-                  {exp.location && <p className="text-sm">
-                    {renderEditableText(exp.location, exp.id, 'experience.location')}
-                  </p>}
-                </div>
-                <p className="text-sm">
-                  {renderEditableTextarea(exp.description, exp.id, 'experience.description')}
-                </p>
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
-
-      {/* Education */}
-      {localData.education.length > 0 && (
-        <section className="mb-6">
-          <h2 className="text-lg font-bold uppercase text-center mb-4 border-b border-gray-300 pb-1">Education</h2>
-          <div className="space-y-5">
-            {localData.education.map((edu) => (
-              <div key={edu.id}>
-                <div className="flex justify-between items-baseline">
-                  <h3 className="font-bold">
-                    {renderEditableText(edu.institution, edu.id, 'education.institution')}
-                  </h3>
-                  <span className="text-sm">
-                    {renderEditableText(edu.startDate, edu.id, 'education.startDate')} - {renderEditableText(edu.endDate, edu.id, 'education.endDate')}
-                  </span>
-                </div>
-                <p className="italic">
-                  {renderEditableText(edu.degree, edu.id, 'education.degree')} in {renderEditableText(edu.field, edu.id, 'education.field')}
-                </p>
-                {edu.location && <p className="text-sm mb-1">
-                  {renderEditableText(edu.location, edu.id, 'education.location')}
-                </p>}
-                {edu.description && <p className="text-sm">
-                  {renderEditableTextarea(edu.description, edu.id, 'education.description')}
-                </p>}
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
-
-      {/* Skills */}
-      {localData.skills.length > 0 && (
-        <section className="mb-6">
-          <h2 className="text-lg font-bold uppercase text-center mb-3 border-b border-gray-300 pb-1">Skills</h2>
-          <ul className="list-disc pl-5 grid grid-cols-2 gap-1">
-            {localData.skills.map((skill) => (
-              <li key={skill.id} className="text-sm">
-                {renderEditableText(skill.name, skill.id, 'skills.name')} 
-                <span className="text-gray-600"> ({renderEditableText(skill.level, skill.id, 'skills.level')})</span>
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
-
-      {/* Projects */}
-      {localData.projects.length > 0 && (
-        <section className="mb-6">
-          <h2 className="text-lg font-bold uppercase text-center mb-4 border-b border-gray-300 pb-1">Projects</h2>
-          <div className="space-y-4">
-            {localData.projects.map((project) => (
-              <div key={project.id}>
-                <div className="flex items-baseline gap-2">
-                  <h3 className="font-bold">
-                    {renderEditableText(project.title, project.id, 'projects.title')}
-                  </h3>
-                  {project.link && (
-                    <a href={project.link} className="text-xs text-blue-600 hover:underline" target="_blank" rel="noopener noreferrer">
-                      ({project.link})
-                    </a>
-                  )}
-                </div>
-                <p className="text-sm">
-                  {renderEditableTextarea(project.description, project.id, 'projects.description')}
-                </p>
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
-
-      {/* Certifications */}
-      {localData.certifications.length > 0 && (
-        <section>
-          <h2 className="text-lg font-bold uppercase text-center mb-4 border-b border-gray-300 pb-1">Certifications</h2>
-          <div className="space-y-4">
-            {localData.certifications.map((cert) => (
-              <div key={cert.id}>
-                <div className="flex justify-between items-baseline">
-                  <h3 className="font-bold">
-                    {renderEditableText(cert.name, cert.id, 'certifications.name')}
-                  </h3>
-                  <span className="text-sm">
-                    {renderEditableText(cert.date, cert.id, 'certifications.date')}
-                  </span>
-                </div>
-                <p className="italic">
-                  {renderEditableText(cert.issuer, cert.id, 'certifications.issuer')}
-                </p>
-                {cert.description && <p className="text-sm">
-                  {renderEditableTextarea(cert.description, cert.id, 'certifications.description')}
-                </p>}
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
-    </div>
-  );
-
-  // Render the Creative template (similar edits as above would be needed)
-  const renderCreativeTemplate = () => (
-    <div className="bg-white text-black max-w-[800px] mx-auto shadow-sm">
-      <div className="grid grid-cols-3 min-h-full">
-        {/* Sidebar */}
-        <div className="bg-blue-900 text-white p-6">
-          <div className="mb-8 text-center">
-            <h1 className="text-xl font-bold mb-1">
-              {renderEditableText(localData.personalInfo.name, null, 'name')}
-            </h1>
-            <p className="text-sm mb-3">
-              {renderEditableText(localData.personalInfo.title, null, 'title')}
-            </p>
-          </div>
-
-          <div className="space-y-1 mb-6 text-sm">
-            {localData.personalInfo.email && (
-              <div className="flex gap-2 items-center">
-                <span className="font-bold">Email:</span>
-                <span>{renderEditableText(localData.personalInfo.email, null, 'email')}</span>
-              </div>
-            )}
-            {localData.personalInfo.phone && (
-              <div className="flex gap-2 items-center">
-                <span className="font-bold">Phone:</span>
-                <span>{renderEditableText(localData.personalInfo.phone, null, 'phone')}</span>
-              </div>
-            )}
-            {localData.personalInfo.location && (
-              <div className="flex gap-2 items-center">
-                <span className="font-bold">Location:</span>
-                <span>{renderEditableText(localData.personalInfo.location, null, 'location')}</span>
-              </div>
-            )}
-          </div>
-
-          {/* Skills in sidebar */}
-          {localData.skills.length > 0 && (
-            <div className="mb-6">
-              <h2 className="text-md font-bold mb-3 border-b border-blue-700 pb-1">Skills</h2>
-              <div className="space-y-2">
-                {localData.skills.map((skill) => (
-                  <div key={skill.id} className="text-sm">
-                    <div className="flex justify-between">
-                      <span>{renderEditableText(skill.name, skill.id, 'skills.name')}</span>
-                      <span className="text-xs">{renderEditableText(skill.level, skill.id, 'skills.level')}</span>
-                    </div>
-                    <div className="w-full bg-blue-700 h-1.5 mt-1">
-                      <div
-                        className="bg-white h-full"
-                        style={{
-                          width: skill.level === "Expert" ? "100%" :
-                                 skill.level === "Advanced" ? "75%" :
-                                 skill.level === "Intermediate" ? "50%" : "25%"
-                        }}
-                      />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Certifications in sidebar */}
-          {localData.certifications.length > 0 && (
-            <div>
-              <h2 className="text-md font-bold mb-3 border-b border-blue-700 pb-1">Certifications</h2>
-              <div className="space-y-3">
-                {localData.certifications.map((cert) => (
-                  <div key={cert.id} className="text-sm">
-                    <h3 className="font-bold">
-                      {renderEditableText(cert.name, cert.id, 'certifications.name')}
-                    </h3>
-                    <p className="text-xs">
-                      {renderEditableText(cert.issuer, cert.id, 'certifications.issuer')} | 
-                      {renderEditableText(cert.date, cert.id, 'certifications.date')}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Main Content */}
-        <div className="col-span-2 p-6">
-          {/* Summary */}
-          {localData.personalInfo.summary && (
-            <section className="mb-6">
-              <h2 className="text-lg font-bold text-blue-900 mb-2 border-b border-gray-200 pb-1">About Me</h2>
-              {renderEditableTextarea(localData.personalInfo.summary, null, 'summary')}
-            </section>
-          )}
-
-          {/* Experience */}
-          {localData.experience.length > 0 && (
-            <section className="mb-6">
-              <h2 className="text-lg font-bold text-blue-900 mb-3 border-b border-gray-200 pb-1">Work Experience</h2>
-              <div className="space-y-4">
-                {localData.experience.map((exp) => (
-                  <div key={exp.id}>
-                    <div className="flex justify-between items-baseline">
-                      <h3 className="font-bold">
-                        {renderEditableText(exp.title, exp.id, 'experience.title')}
-                      </h3>
-                      <span className="text-xs text-gray-600">
-                        {renderEditableText(exp.startDate, exp.id, 'experience.startDate')} - {renderEditableText(exp.endDate, exp.id, 'experience.endDate')}
-                      </span>
-                    </div>
-                    <div className="flex justify-between items-baseline mb-1">
-                      <p className="text-sm text-blue-900 font-medium">
-                        {renderEditableText(exp.company, exp.id, 'experience.company')}
-                      </p>
-                      {exp.location && <p className="text-xs text-gray-600">
-                        {renderEditableText(exp.location, exp.id, 'experience.location')}
-                      </p>}
-                    </div>
-                    <p className="text-xs">
-                      {renderEditableTextarea(exp.description, exp.id, 'experience.description')}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            </section>
-          )}
-
-          {/* Education */}
-          {localData.education.length > 0 && (
-            <section className="mb-6">
-              <h2 className="text-lg font-bold text-blue-900 mb-3 border-b border-gray-200 pb-1">Education</h2>
-              <div className="space-y-4">
-                {localData.education.map((edu) => (
-                  <div key={edu.id}>
-                    <div className="flex justify-between items-baseline">
-                      <h3 className="font-bold">
-                        {renderEditableText(edu.degree, edu.id, 'education.degree')} in {renderEditableText(edu.field, edu.id, 'education.field')}
-                      </h3>
-                      <span className="text-xs text-gray-600">
-                        {renderEditableText(edu.startDate, edu.id, 'education.startDate')} - {renderEditableText(edu.endDate, edu.id, 'education.endDate')}
-                      </span>
-                    </div>
-                    <p className="text-sm text-blue-900 font-medium">
-                      {renderEditableText(edu.institution, edu.id, 'education.institution')}
-                    </p>
-                    {edu.location && <p className="text-xs text-gray-600 mb-1">
-                      {renderEditableText(edu.location, edu.id, 'education.location')}
-                    </p>}
-                    {edu.description && <p className="text-xs">
-                      {renderEditableTextarea(edu.description, edu.id, 'education.description')}
-                    </p>}
-                  </div>
-                ))}
-              </div>
-            </section>
-          )}
-
-          {/* Projects */}
-          {localData.projects.length > 0 && (
-            <section>
-              <h2 className="text-lg font-bold text-blue-900 mb-3 border-b border-gray-200 pb-1">Projects</h2>
-              <div className="space-y-3">
-                {localData.projects.map((project) => (
-                  <div key={project.id}>
-                    <div className="flex items-baseline gap-2">
-                      <h3 className="font-bold">
-                        {renderEditableText(project.title, project.id, 'projects.title')}
-                      </h3>
-                      {project.link && (
-                        <a href={project.link} className="text-xs text-blue-600 hover:underline" target="_blank" rel="noopener noreferrer">
-                          Link
-                        </a>
-                      )}
-                    </div>
-                    <p className="text-xs">
-                      {renderEditableTextarea(project.description, project.id, 'projects.description')}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            </section>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-
   // Choose the appropriate template based on the selected template
   const renderTemplate = () => {
     if (!template || template.category === "Modern") {
       return renderModernTemplate();
     } else if (template.category === "Classic") {
-      return renderClassicTemplate();
+      return renderModernTemplate(); // Placeholder for Classic template
     } else if (template.category === "Creative" || template.id === "template-3") {
-      return renderCreativeTemplate();
+      return renderModernTemplate(); // Placeholder for Creative template
     }
 
     // Default to modern template if no match
@@ -766,13 +487,13 @@ export default function ResumePreview({ resumeData, template, onUpdate }: Resume
           {editMode ? "Save Changes" : "Edit Resume"}
         </Button>
       </div>
-
       <div
         ref={previewRef}
         className="flex-1 overflow-auto bg-gray-100 p-4 relative"
         style={{
           // Only show content for the current page in a paginated view
-          scrollTop: (currentPage - 1) * 1056
+          height: '100%',
+          overflowY: 'auto'
         }}
       >
         {renderTemplate()}
@@ -817,4 +538,6 @@ export default function ResumePreview({ resumeData, template, onUpdate }: Resume
       )}
     </div>
   );
-}
+};
+
+export default ResumePreview;
