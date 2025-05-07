@@ -32,6 +32,17 @@ const uploadTemplete = async (req, res) => {
   }
 };
 
+const getSingleTemplete = async (req, res) => {
+  try {
+    const file = await TempleteFile.findById(req.params.id);
+    if (!file) return res.status(404).json({ message: 'File not found' });
+
+    res.status(200).json(file);
+  } catch (error) {
+    res.status(500).json({ message: 'Fetching file failed', error: error.message });
+  }
+};
+
 // Download/view
 const downloadTemplete = async (req, res) => {
   try {
@@ -78,6 +89,7 @@ const getAllTempletes = async (req, res) => {
 
 module.exports = {
   uploadTemplete,
+  getSingleTemplete,
   downloadTemplete,
   deleteTemplete,
   getAllTempletes,
