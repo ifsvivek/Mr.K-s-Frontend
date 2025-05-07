@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useContext } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -6,6 +6,8 @@ import { FcGoogle } from "react-icons/fc";
 import { FaLinkedin } from "react-icons/fa";
 import axios from "axios";
 import { Link, useNavigate } from "react-router-dom";
+import { AuthContext } from "@/Context/AuthContext";
+import { toast } from "sonner";
 
 export default function UserSignup() {
   const [name, setName] = useState("");
@@ -13,6 +15,7 @@ export default function UserSignup() {
   const [phoneNumber, setPhoneNumber] = useState("");
   const [password, setPassword] = useState("");
   const navigate = useNavigate();
+  const { loginAsUser } = useContext(AuthContext);
 
   const handleSignup = async () => {
     try {
@@ -21,11 +24,30 @@ export default function UserSignup() {
         { name, email, phoneNumber, password },
         { withCredentials: true }
       );
-      // On successful signup, redirect the user to the dashboard
-      navigate("/#");
-    } catch (err) {
-      alert("Signup failed. Please try again.");
+
+      const { user, token } = response.data;
+
+      // Log in user immediately after registration
+      loginAsUser(user, token);
+      
+      // Show success message
+      toast.success("Account created successfully! Redirecting to dashboard...");
+      
+      // Navigate directly to dashboard
+      navigate("/dashboard", { replace: true }); // Using replace to prevent going back to signup
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || "Signup failed. Please try again.");
     }
+  };
+
+  const handleGoogleSignup = () => {
+    window.location.href = "http://localhost:5000/api/user/auth/google";
+    // The AuthCallback component will handle the redirect to dashboard
+  };
+
+  const handleLinkedInSignup = () => {
+    window.location.href = "http://localhost:5000/api/user/auth/linkedin";
+    // The AuthCallback component will handle the redirect to dashboard
   };
 
   return (
@@ -35,63 +57,63 @@ export default function UserSignup() {
           <CardTitle className="text-2xl text-center">Create an Account</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          {/* Google Sign-Up Button */}
+          {/* Update social login buttons */}
           <Button
             variant="outline"
             className="w-full flex items-center gap-2 justify-center"
-            onClick={() =>
-              (window.location.href = "http://localhost:1000/api/user/auth/google")
-            }
+            onClick={handleGoogleSignup}
           >
             <FcGoogle size={20} />
             Sign Up with Google
           </Button>
 
-          {/* LinkedIn Sign-Up Button */}
           <Button
             variant="outline"
             className="w-full flex items-center gap-2 justify-center"
-            onClick={() =>
-              (window.location.href = "http://localhost:5000/api/user/auth/linkedin")
-            }
+            onClick={handleLinkedInSignup}
           >
             <FaLinkedin size={20} className="text-blue-700" />
             Sign Up with LinkedIn
           </Button>
 
-          {/* Name Input */}
+          <div className="relative my-6">
+            <div className="absolute inset-0 flex items-center">
+              <span className="w-full border-t" />
+            </div>
+            <div className="relative flex justify-center text-sm">
+              <span className="bg-background px-2 text-muted-foreground">
+                Or continue with
+              </span>
+            </div>
+          </div>
+
+          {/* Form Fields */}
           <div>
-            <label htmlFor="name" className="text-sm">
-              Name
-            </label>
+            <label htmlFor="name" className="text-sm">Name</label>
             <Input
               id="name"
               type="text"
               placeholder="Your full name"
               value={name}
               onChange={(e) => setName(e.target.value)}
+              required
             />
           </div>
 
-          {/* Email Input */}
           <div>
-            <label htmlFor="email" className="text-sm">
-              Email
-            </label>
+            <label htmlFor="email" className="text-sm">Email</label>
             <Input
               id="email"
               type="email"
               placeholder="you@example.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
+              required
             />
           </div>
 
-          {/* Phone Number Input */}
           <div>
-            <label htmlFor="phoneNumber" className="text-sm">
-              Phone Number
-            </label>
+            <label htmlFor="phoneNumber" className="text-sm">Phone Number</label>
             <Input
               id="phoneNumber"
               type="tel"
@@ -101,33 +123,29 @@ export default function UserSignup() {
             />
           </div>
 
-          {/* Password Input */}
           <div>
-            <label htmlFor="password" className="text-sm">
-              Password
-            </label>
+            <label htmlFor="password" className="text-sm">Password</label>
             <Input
               id="password"
               type="password"
               placeholder="••••••••"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              required
             />
           </div>
 
-          {/* Sign Up Button */}
           <Button className="w-full" onClick={handleSignup}>
-            Sign Up
+            Create Account
           </Button>
 
-          {/* Login Link */}
           <div className="mt-6 text-center text-sm text-zinc-400">
-            Already have an account?{" "}
+            <span>By signing up, you agree to our </span>
             <Link
-              to="/user-login"
+              to="/terms"
               className="font-medium text-blue-500 hover:text-blue-400 transition-colors"
             >
-              Login
+              Terms of Service
             </Link>
           </div>
         </CardContent>
