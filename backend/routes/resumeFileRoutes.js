@@ -3,6 +3,7 @@ const router = express.Router();
 const {
   uploadResume,
   downloadResume,
+  getSingleResume,
   deleteResume,
   getAllResumes,
 } = require('../controllers/resumeFileController');

@@ -3,6 +3,7 @@ const router = express.Router();
 const {
   uploadTemplete,
   downloadTemplete,
+  getSingleTemplete,
   deleteTemplete,
   getAllTempletes,
 } = require('../controllers/templeteFileController');
