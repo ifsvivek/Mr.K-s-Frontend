@@ -10,8 +10,6 @@ const connectDB = require('./db/db.js');
 
 const adminRoutes = require('./routes/adminRoute.js');
 const userRoutes = require('./routes/userRoute.js');
-const templateRoutes = require('./routes/templeteRoute.js');
-const resumeRoutes = require('./routes/resumeRoute.js');
 const resumeFileRoutes = require('./routes/resumeFileRoutes');
 const templateFileRoutes = require('./routes/templateFileRoute.js');
 const path = require('path');
@@ -34,8 +32,6 @@ app.use('/files', express.static(path.join(__dirname, 'uploads')));
 
 app.use('/api/admin', adminRoutes);
 app.use('/api/user', userRoutes);
-app.use('/api/template', templateRoutes);
-app.use('/api/resume', resumeRoutes);
 app.use('/api/resumeFile', resumeFileRoutes);
 app.use('/api/templateFile', templateFileRoutes);
 
