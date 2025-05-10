@@ -14,7 +14,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { MoreHorizontal, Plus, FileText, User, Mail, Pencil, Save } from "lucide-react";
+import { MoreHorizontal, Plus, FileText, User, Mail, Pencil, Save, Download, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import axios from "axios";
 import { useAuthContext } from "@/Context/AuthContext";
@@ -32,6 +32,17 @@ interface Resume {
   };
 }
 
+interface ResumeFile {
+  _id: string;
+  title: string;
+  filename: string;
+  path: string;
+  mimetype: string;
+  size: number;
+  uploadedBy: string;
+  createdAt: string;
+}
+
 interface UserProfile {
   _id: string;
   name: string;
@@ -47,6 +58,7 @@ export default function DashboardPage() {
   const { user, token, logout } = useAuthContext();
 
   const [resumes, setResumes] = useState<Resume[]>([]);
+  const [resumeFiles, setResumeFiles] = useState<ResumeFile[]>([]);
   const [loading, setLoading] = useState(true);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [resumeToDelete, setResumeToDelete] = useState<string | null>(null);
@@ -56,21 +68,26 @@ export default function DashboardPage() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [editProfileData, setEditProfileData] = useState<Partial<UserProfile>>({});
+  const [activeTab, setActiveTab] = useState("resumes");
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [resumesRes, profileRes] = await Promise.all([
+        const [resumesRes, profileRes, filesRes] = await Promise.all([
           axios.get("http://localhost:5000/api/resume/getAll", {
             headers: { Authorization: `Bearer ${token}` },
           }),
           axios.get("http://localhost:5000/api/user/profile", {
+            headers: { Authorization: `Bearer ${token}` },
+          }),
+          axios.get("http://localhost:5000/api/resumeFile/all", {
             headers: { Authorization: `Bearer ${token}` },
           })
         ]);
         
         setResumes(resumesRes.data.resumes);
         setProfile(profileRes.data.user);
+        setResumeFiles(filesRes.data);
       } catch (err) {
         toast.error("Failed to fetch data");
       } finally {
@@ -99,9 +116,7 @@ export default function DashboardPage() {
         }
       );
       
-      // Add the new resume to the state
       setResumes([...resumes, res.data.newResume]);
-      
       navigate(`/editor/${res.data.newResume._id}`);
       toast.success("New resume created");
     } catch (err) {
@@ -112,6 +127,22 @@ export default function DashboardPage() {
 
   const handleOpenResume = (id: string) => {
     navigate(`/editor/${id}`);
+  };
+
+  const handleDownloadResumeFile = (file: ResumeFile) => {
+    window.open(file.path, '_blank');
+  };
+
+  const handleDeleteResumeFile = async (fileId: string) => {
+    try {
+      await axios.delete(`http://localhost:5000/api/resumeFile/delete/${fileId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setResumeFiles(resumeFiles.filter(f => f._id !== fileId));
+      toast.success("Resume file deleted");
+    } catch (err) {
+      toast.error("Failed to delete resume file");
+    }
   };
 
   const handleDeleteClick = (id: string) => {
@@ -312,13 +343,13 @@ export default function DashboardPage() {
           </Card>
         </div>
 
-        {/* Resumes Section */}
+        {/* Main Content */}
         <div className="lg:w-2/3">
           <div className="flex justify-between items-center mb-8">
             <div>
-              <h1 className="text-3xl font-bold tracking-tight">My Resumes</h1>
+              <h1 className="text-3xl font-bold tracking-tight">My Dashboard</h1>
               <p className="text-muted-foreground mt-1">
-                Manage all your resumes in one place
+                Manage all your resumes and files
               </p>
             </div>
             <Button onClick={handleCreateResume} className="gap-2">
@@ -327,13 +358,14 @@ export default function DashboardPage() {
             </Button>
           </div>
 
-          <Tabs defaultValue="all">
+          <Tabs defaultValue="resumes" onValueChange={setActiveTab}>
             <TabsList className="mb-6">
-              <TabsTrigger value="all">All Resumes</TabsTrigger>
-              <TabsTrigger value="recent">Recent</TabsTrigger>
+              <TabsTrigger value="resumes">Resumes</TabsTrigger>
+              <TabsTrigger value="files">Saved Files</TabsTrigger>
             </TabsList>
 
-            <TabsContent value="all">
+            {/* Resumes Tab */}
+            <TabsContent value="resumes">
               {resumes.length === 0 ? (
                 <div className="text-center py-12">
                   <FileText className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
@@ -387,19 +419,26 @@ export default function DashboardPage() {
               )}
             </TabsContent>
 
-            <TabsContent value="recent">
-              <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-2">
-                {[...resumes]
-                  .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
-                  .slice(0, 6)
-                  .map((resume) => (
-                    <Card key={resume._id}>
+            {/* Files Tab */}
+            <TabsContent value="files">
+              {resumeFiles.length === 0 ? (
+                <div className="text-center py-12">
+                  <FileText className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                  <h3 className="text-lg font-medium mb-2">No saved files yet</h3>
+                  <p className="text-muted-foreground mb-6">
+                    Your saved resume PDFs will appear here
+                  </p>
+                </div>
+              ) : (
+                <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-2">
+                  {resumeFiles.map((file) => (
+                    <Card key={file._id}>
                       <CardHeader className="pb-2">
                         <CardTitle className="truncate">
-                          {resume.data?.personalInfo?.name || "Untitled Resume"}
+                          {file.title || "Untitled File"}
                         </CardTitle>
                         <CardDescription>
-                          {resume.data?.personalInfo?.title || "No Title"}
+                          {new Date(file.createdAt).toLocaleDateString()}
                         </CardDescription>
                       </CardHeader>
                       <CardContent className="h-32 flex items-center justify-center bg-muted/30">
@@ -407,15 +446,32 @@ export default function DashboardPage() {
                       </CardContent>
                       <CardFooter className="flex items-center justify-between pt-2">
                         <div className="text-xs text-muted-foreground">
-                          Last updated: {new Date(resume.updatedAt).toLocaleDateString()}
+                          {Math.round(file.size / 1024)} KB
                         </div>
-                        <Button variant="secondary" size="sm" onClick={() => handleOpenResume(resume._id)}>
-                          Edit
-                        </Button>
+                        <div className="flex items-center gap-2">
+                          <Button 
+                            variant="secondary" 
+                            size="sm" 
+                            onClick={() => handleDownloadResumeFile(file)}
+                            className="gap-1"
+                          >
+                            <Download className="h-4 w-4" />
+                            Download
+                          </Button>
+                          <Button 
+                            variant="destructive" 
+                            size="sm" 
+                            onClick={() => handleDeleteResumeFile(file._id)}
+                            className="gap-1"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </CardFooter>
                     </Card>
                   ))}
-              </div>
+                </div>
+              )}
             </TabsContent>
           </Tabs>
 

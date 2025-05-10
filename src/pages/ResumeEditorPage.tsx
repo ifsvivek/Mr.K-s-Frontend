@@ -6,6 +6,8 @@ import { toast } from "sonner";
 import axios from "axios";
 import ResumePreview from "@/features/resume-editor/ResumePreview";
 import AiSuggestions from "@/features/resume-editor/AiSuggestions";
+import html2canvas from "html2canvas";
+import jsPDF from "jspdf";
 
 interface Template {
   _id: string;
@@ -57,6 +59,8 @@ export default function ResumeEditorPage() {
   const [currentTemplate, setCurrentTemplate] = useState<Template | null>(null);
   const [currentResume, setCurrentResume] = useState<ResumeData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [resumeTitle, setResumeTitle] = useState("My Resume");
 
   useEffect(() => {
     const fetchData = async () => {
@@ -115,24 +119,92 @@ export default function ResumeEditorPage() {
     }
   };
 
+  const generateResumePDF = async (): Promise<Blob> => {
+    const resumeElement = document.querySelector(".resume-preview-container");
+    if (!resumeElement) throw new Error("Resume element not found");
+
+    const canvas = await html2canvas(resumeElement as HTMLElement, {
+      scale: 2,
+      useCORS: true,
+      allowTaint: true,
+    });
+
+    const imgData = canvas.toDataURL("image/png");
+    const pdf = new jsPDF("p", "mm", "a4");
+    const imgWidth = 210; // A4 width in mm
+    const pageHeight = 295; // A4 height in mm
+    const imgHeight = (canvas.height * imgWidth) / canvas.width;
+    
+    let heightLeft = imgHeight;
+    let position = 0;
+
+    pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
+    heightLeft -= pageHeight;
+
+    while (heightLeft >= 0) {
+      position = heightLeft - imgHeight;
+      pdf.addPage();
+      pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
+      heightLeft -= pageHeight;
+    }
+
+    return new Blob([pdf.output("blob")], { type: "application/pdf" });
+  };
+
   const handleSaveResume = async () => {
-    if (!currentResume) return;
+    if (!currentResume || !currentTemplate) return;
     
     try {
-      const url = resumeId 
+      setIsSaving(true);
+      
+      // First save the resume data
+      const resumeDataUrl = resumeId 
         ? `http://localhost:5000/api/resumes/${resumeId}`
         : "http://localhost:5000/api/resumes";
       
       const method = resumeId ? "put" : "post";
       
-      await axios[method](url, currentResume, {
-        withCredentials: true,
-      });
+      const resumeResponse = await axios[method](
+        resumeDataUrl, 
+        { ...currentResume, title: resumeTitle },
+        { withCredentials: true }
+      );
       
-      toast.success("Resume saved successfully");
+      // Then generate and upload the PDF
+      const pdfBlob = await generateResumePDF();
+      
+      const formData = new FormData();
+      formData.append("file", pdfBlob, `${resumeTitle.replace(/\s+/g, '_')}.pdf`);
+      formData.append("title", resumeTitle);
+
+      // Upload the PDF to S3
+      const uploadResponse = await axios.post(
+        "http://localhost:5000/api/resumeFile/upload",
+        formData,
+        {
+          withCredentials: true,
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        }
+      );
+
+      // If this is a new resume, update the URL with the new ID
+      if (!resumeId && resumeResponse.data.id) {
+        navigate(`/resumes/${resumeResponse.data.id}/edit`, { replace: true });
+      }
+      
+      toast.success("Resume saved and PDF uploaded successfully");
+      return uploadResponse.data;
     } catch (err) {
+      console.error("Save error:", err);
       toast.error("Failed to save resume");
-      console.error(err);
+      if (err.response) {
+        console.error("Response data:", err.response.data);
+        console.error("Response status:", err.response.status);
+      }
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -166,8 +238,19 @@ export default function ResumeEditorPage() {
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">Resume Editor</h1>
         <div className="flex items-center gap-2">
-          <Button onClick={handleSaveResume} className="gap-2">
-            Save Resume
+          <input
+            type="text"
+            value={resumeTitle}
+            onChange={(e) => setResumeTitle(e.target.value)}
+            className="border rounded px-3 py-1"
+            placeholder="Resume title"
+          />
+          <Button 
+            onClick={handleSaveResume} 
+            className="gap-2"
+            disabled={isSaving || !currentTemplate}
+          >
+            {isSaving ? "Saving..." : "Save Resume"}
           </Button>
         </div>
       </div>
@@ -224,15 +307,17 @@ export default function ResumeEditorPage() {
                 </div>
                 <div className="bg-white shadow-md rounded-md border p-2 flex-1 overflow-auto">
                   {currentTemplate ? (
-                    <ResumePreview
-                      resumeData={currentResume}
-                      template={{
-                        id: currentTemplate._id,
-                        name: currentTemplate.title,
-                        thumbnail: currentTemplate.path,
-                      }}
-                      onUpdate={handleResumeUpdate}
-                    />
+                    <div className="resume-preview-container">
+                      <ResumePreview
+                        resumeData={currentResume}
+                        template={{
+                          id: currentTemplate._id,
+                          name: currentTemplate.title,
+                          thumbnail: currentTemplate.path,
+                        }}
+                        onUpdate={handleResumeUpdate}
+                      />
+                    </div>
                   ) : (
                     <div className="flex items-center justify-center h-full">
                       <p>Please select a template</p>

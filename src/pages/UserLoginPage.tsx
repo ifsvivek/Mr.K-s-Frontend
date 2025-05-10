@@ -43,7 +43,7 @@ export default function UserLoginPage() {
             variant="outline"
             className="w-full flex items-center gap-2 justify-center"
             onClick={() =>
-              window.location.href = "http://localhost:1000/api/user/auth/google"
+              window.location.href = "http://localhost:5000/api/user/auth/google"
             }
           >
             <FcGoogle size={20} />
@@ -54,7 +54,7 @@ export default function UserLoginPage() {
             variant="outline"
             className="w-full flex items-center gap-2 justify-center"
             onClick={() =>
-              window.location.href = "http://localhost:1000/api/user/auth/linkedin"
+              window.location.href = "http://localhost:5000/api/user/auth/linkedin"
             }
           >
             <FaLinkedin size={20} className="text-blue-700" />
