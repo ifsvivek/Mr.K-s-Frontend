@@ -1,9 +1,7 @@
 const multer = require('multer');
 const { S3Client, PutObjectCommand } = require('@aws-sdk/client-s3');
-const { getSignedUrl } = require('@aws-sdk/s3-request-presigner');
 const path = require('path');
 const crypto = require('crypto');
-const { Readable } = require('stream');
 
 // AWS S3 client setup
 const s3 = new S3Client({
@@ -14,11 +12,11 @@ const s3 = new S3Client({
   },
 });
 
-// File filter: only .doc and .docx
+// File filter: only .pdf
 const fileFilter = (req, file, cb) => {
-  const ext = path.extname(file.originalname);
-  if (ext !== '.doc' && ext !== '.docx') {
-    return cb(new Error('Only .doc and .docx files are allowed'), false);
+  const ext = path.extname(file.originalname).toLowerCase();
+  if (ext !== '.pdf') {
+    return cb(new Error('Only .pdf files are allowed'), false);
   }
   cb(null, true);
 };
@@ -37,14 +35,14 @@ const uploadToS3 = async (req, res, next) => {
 
   try {
     const file = req.file;
-    const fileExt = path.extname(file.originalname);
+    const fileExt = path.extname(file.originalname).toLowerCase();
     const filename = `${Date.now()}-${crypto.randomBytes(8).toString('hex')}${fileExt}`;
 
     const uploadParams = {
       Bucket: process.env.AWS_S3_BUCKET_NAME,
       Key: filename,
       Body: file.buffer,
-      ContentType: file.mimetype,
+      ContentType: file.mimetype, // For PDFs this should be 'application/pdf'
     };
 
     await s3.send(new PutObjectCommand(uploadParams));
