@@ -32,6 +32,34 @@ const uploadResume = async (req, res) => {
   }
 };
 
+// Save new resume data
+const saveResumeData = async (req, res) => {
+  try {
+    const { resumeData, templateId } = req.body;
+    const userId = req.user._id;
+
+    const newResume = new Resume({
+      user: userId,
+      resumeData,
+      template: templateId
+    });
+
+    const savedResume = await newResume.save();
+
+    res.status(201).json({
+      success: true,
+      message: 'Resume saved successfully',
+      resume: savedResume
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Failed to save resume',
+      error: error.message
+    });
+  }
+};
+
 const getSingleResume = async (req, res) => {
   try {
     const file = await ResumeFile.findById(req.params.id);
@@ -77,6 +105,43 @@ const deleteResume = async (req, res) => {
   }
 };
 
+// Update existing resume data
+const updateResumeData = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { resumeData, templateId } = req.body;
+    const userId = req.user._id;
+
+    // Check if resume exists and belongs to user
+    const existingResume = await Resume.findOne({ _id: id, user: userId });
+    if (!existingResume) {
+      return res.status(404).json({
+        success: false,
+        message: 'Resume not found or not authorized'
+      });
+    }
+
+    // Update resume data
+    existingResume.resumeData = resumeData;
+    existingResume.template = templateId;
+    existingResume.updatedAt = Date.now();
+
+    const updatedResume = await existingResume.save();
+
+    res.status(200).json({
+      success: true,
+      message: 'Resume updated successfully',
+      resume: updatedResume
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Failed to update resume',
+      error: error.message
+    });
+  }
+};
+
 // Get all files for logged-in user
 const getAllResumes = async (req, res) => {
   try {
@@ -89,6 +154,9 @@ const getAllResumes = async (req, res) => {
 
 module.exports = {
   uploadResume,
+  downloadResume,
+  saveResumeData,
+  updateResumeData,
   getSingleResume,
   downloadResume,
   deleteResume,

@@ -1,57 +1,63 @@
 import { useState, useEffect } from "react";
-import axios from "axios";
+import { Document, Page, pdfjs } from 'react-pdf';
+import 'react-pdf/dist/esm/Page/AnnotationLayer.css';
+import 'react-pdf/dist/esm/Page/TextLayer.css';
 
-interface Template {
-  id: string;
-  name: string;
-  path: string;
-}
+// Modern worker import for Create React App
+pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`;
 
 interface ResumePreviewProps {
-  template: Template | null;
+  pdfFile: File | null;
 }
 
-export default function ResumePreview({ template }: ResumePreviewProps) {
-  const [templateUrl, setTemplateUrl] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
+export default function ResumePreview({ pdfFile }: ResumePreviewProps) {
+  const [numPages, setNumPages] = useState<number | null>(null);
+  const [pageWidth, setPageWidth] = useState(800);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [fileUrl, setFileUrl] = useState<string | null>(null);
 
-  // Fetch template URL when template changes
+  // Create object URL when file changes
   useEffect(() => {
-    if (template) {
-      fetchTemplateUrl(template.id);
+    if (pdfFile) {
+      const url = URL.createObjectURL(pdfFile);
+      setFileUrl(url);
+      return () => URL.revokeObjectURL(url); // Clean up on unmount
     } else {
-      setTemplateUrl(null);
+      setFileUrl(null);
     }
-  }, [template]);
+  }, [pdfFile]);
 
-  const fetchTemplateUrl = async (templateId: string) => {
-    try {
-      setLoading(true);
-      setError(null);
-      
-      // Fetch the template download URL from your API
-      const response = await axios.get(`http://localhost:5000/api/templateFile/singleTemplete/${templateId}`, {
-        withCredentials: true,
-      });
+  // Adjust PDF width based on container size
+  useEffect(() => {
+    const updateWidth = () => {
+      const container = document.querySelector('.pdf-container');
+      if (container) {
+        setPageWidth(Math.min(container.clientWidth - 40, 800));
+      }
+    };
 
-      // Assuming the response contains the download URL or path
-      // Adjust this based on your actual API response structure
-      const downloadUrl = `http://localhost:5000/api/templateFile/download/${templateId}`;
-      setTemplateUrl(downloadUrl);
-    } catch (err) {
-      console.error("Failed to fetch template:", err);
-      setError("Failed to load template");
-    } finally {
-      setLoading(false);
-    }
-  };
+    updateWidth();
+    window.addEventListener('resize', updateWidth);
+    return () => window.removeEventListener('resize', updateWidth);
+  }, []);
 
-  if (loading) {
+  function onDocumentLoadSuccess({ numPages }: { numPages: number }) {
+    setNumPages(numPages);
+    setLoading(false);
+  }
+
+  function onDocumentLoadError(error: Error) {
+    console.error("PDF load error:", error);
+    setError("Failed to load PDF document");
+    setLoading(false);
+  }
+
+  if (loading && !error) {
     return (
       <div className="flex items-center justify-center h-full">
         <div className="text-center">
-          <p>Loading template...</p>
+          <p>Loading PDF document...</p>
         </div>
       </div>
     );
@@ -67,30 +73,61 @@ export default function ResumePreview({ template }: ResumePreviewProps) {
     );
   }
 
-  if (!template) {
+  if (!pdfFile || !fileUrl) {
     return (
       <div className="flex items-center justify-center h-full">
         <div className="text-center">
-          <p>Please select a template</p>
+          <p>No PDF document selected</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col h-full">
-      <div className="flex-1 overflow-hidden">
-        {templateUrl ? (
-          <iframe 
-            src={`https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(templateUrl)}`}
-            className="w-full h-full border-none"
-            title="Template Preview"
-          />
-        ) : (
-          <div className="flex items-center justify-center h-full">
-            <p>Template preview not available</p>
-          </div>
-        )}
+    <div className="pdf-container flex flex-col h-full p-4 bg-gray-50">
+      <div className="flex-1 overflow-auto flex justify-center">
+        <div className="bg-white p-4 shadow-md rounded-lg">
+          <Document
+            file={fileUrl}
+            onLoadSuccess={onDocumentLoadSuccess}
+            onLoadError={onDocumentLoadError}
+            loading={
+              <div className="flex items-center justify-center h-64">
+                <p>Loading PDF document...</p>
+              </div>
+            }
+            error={
+              <div className="text-red-500 p-4">
+                Failed to load PDF template
+              </div>
+            }
+            options={{
+              cMapUrl: `https://unpkg.com/pdfjs-dist@${pdfjs.version}/cmaps/`,
+              cMapPacked: true,
+            }}
+          >
+            {Array.from(new Array(numPages), (el, index) => (
+              <div key={`page_${index + 1}`} className="mb-4 last:mb-0">
+                <Page
+                  pageNumber={index + 1}
+                  width={pageWidth}
+                  loading={
+                    <div className="flex items-center justify-center h-64">
+                      <p>Loading page {index + 1}...</p>
+                    </div>
+                  }
+                  renderTextLayer={false}
+                  renderAnnotationLayer={false}
+                />
+                {numPages && numPages > 1 && (
+                  <div className="text-center text-sm text-gray-500 mt-2">
+                    Page {index + 1} of {numPages}
+                  </div>
+                )}
+              </div>
+            ))}
+          </Document>
+        </div>
       </div>
     </div>
   );

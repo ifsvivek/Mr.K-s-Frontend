@@ -26,7 +26,7 @@ export default function AdminPage() {
 
   const [newTemplate, setNewTemplate] = useState({
     title: "",
-    file: null as File | null // Changed from docxFile to file
+    file: null as File | null
   });
 
   // Fetch templates from database
@@ -61,7 +61,7 @@ export default function AdminPage() {
       const formData = new FormData();
       formData.append('title', newTemplate.title);
       if (newTemplate.file) {
-        formData.append('file', newTemplate.file); // Changed from docxFile to file
+        formData.append('file', newTemplate.file);
       }
 
       const response = await axios.post(
@@ -109,9 +109,9 @@ export default function AdminPage() {
     if (e.target.files && e.target.files[0]) {
       setNewTemplate({
         ...newTemplate,
-        file: e.target.files[0] // Changed from docxFile to file
+        file: e.target.files[0]
       });
-      toast.success("DOCX file selected");
+      toast.success("PDF file selected");
     }
   };
 
@@ -211,13 +211,13 @@ export default function AdminPage() {
 
                 <div className="space-y-2">
                   <label htmlFor="file" className="text-sm font-medium">
-                    DOCX File*
+                    PDF File*
                   </label>
                   <Input
                     id="file"
-                    name="file" // Changed from docxFile to file
+                    name="file"
                     type="file"
-                    accept=".doc,.docx,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                    accept=".pdf,application/pdf"
                     onChange={handleFileUpload}
                     className="cursor-pointer"
                     required
