@@ -1,4 +1,5 @@
 const ResumeFile = require('../models/resumeFileModel');
+const Resume = require('../models/resumeModel');
 const { S3Client, DeleteObjectCommand } = require('@aws-sdk/client-s3');
 
 // S3 client config
@@ -35,13 +36,22 @@ const uploadResume = async (req, res) => {
 // Save new resume data
 const saveResumeData = async (req, res) => {
   try {
-    const { resumeData, templateId } = req.body;
     const userId = req.user._id;
+    const data = req.body;
+    const title = data.title || "Untitled Resume";
+    
+    // Extract templateId if it exists, or use a default
+    let templateId = data.templateId;
+    if (!templateId && data.template && data.template.id) {
+      templateId = data.template.id;
+    }
 
+    // Create new resume object
     const newResume = new Resume({
       user: userId,
-      resumeData,
-      template: templateId
+      data: data,
+      title: title,
+      template: templateId || "default"
     });
 
     const savedResume = await newResume.save();
@@ -49,9 +59,11 @@ const saveResumeData = async (req, res) => {
     res.status(201).json({
       success: true,
       message: 'Resume saved successfully',
-      resume: savedResume
+      resume: savedResume,
+      id: savedResume._id
     });
   } catch (error) {
+    console.error("Save resume error:", error);
     res.status(500).json({
       success: false,
       message: 'Failed to save resume',
@@ -62,12 +74,19 @@ const saveResumeData = async (req, res) => {
 
 const getSingleResume = async (req, res) => {
   try {
+    // First try to find in Resume model (actual resume data)
+    const resume = await Resume.findById(req.params.id);
+    if (resume) {
+      return res.status(200).json(resume.data);
+    }
+    
+    // If not found in Resume model, try ResumeFile model
     const file = await ResumeFile.findById(req.params.id);
-    if (!file) return res.status(404).json({ message: 'File not found' });
+    if (!file) return res.status(404).json({ message: 'Resume not found' });
 
     res.status(200).json(file);
   } catch (error) {
-    res.status(500).json({ message: 'Fetching file failed', error: error.message });
+    res.status(500).json({ message: 'Fetching resume failed', error: error.message });
   }
 };
 

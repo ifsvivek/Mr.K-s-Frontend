@@ -51,19 +51,33 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const storedUser = localStorage.getItem("user");
     const storedRole = localStorage.getItem("role");
 
-    if (storedToken && storedRole) {
-      setToken(storedToken);
-      setRole(storedRole as "admin" | "user");
-      setIsAuthenticated(true);
+    const verifyToken = async () => {
+      if (storedToken && storedRole) {
+        try {
+          // Verify token with backend
+          const response = await axios.get("http://localhost:5000/api/user/verify-token", {
+            headers: { Authorization: `Bearer ${storedToken}` }
+          });
 
-      if (storedRole === "admin" && storedAdmin) {
-        setAdmin(JSON.parse(storedAdmin));
-      }
+          setToken(storedToken);
+          setRole(storedRole as "admin" | "user");
+          setIsAuthenticated(true);
 
-      if (storedRole === "user" && storedUser) {
-        setUser(JSON.parse(storedUser));
+          if (storedRole === "admin" && storedAdmin) {
+            setAdmin(JSON.parse(storedAdmin));
+          }
+
+          if (storedRole === "user" && storedUser) {
+            setUser(JSON.parse(storedUser));
+          }
+        } catch (error) {
+          // If token verification fails, clear everything
+          logout();
+        }
       }
-    }
+    };
+
+    verifyToken();
   }, []);
 
   const loginAsAdmin = (adminData: Admin, tokenData: string) => {

@@ -106,3 +106,43 @@ module.exports.logoutUser = async (req, res, next) => {
     res.status(200).json({ message: 'Logged out' });
 
 }
+
+module.exports.updateUserProfile = async (req, res, next) => {
+    try {
+        const { name, email, profession, location, phone } = req.body;
+        const userId = req.user._id;
+
+        const updatedUser = await userModel.findByIdAndUpdate(
+            userId,
+            { name, email, profession, location, phone },
+            { new: true, runValidators: true }
+        );
+
+        if (!updatedUser) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        res.status(200).json({ 
+            message: 'Profile updated successfully',
+            user: updatedUser 
+        });
+    } catch (error) {
+        console.error("Error updating user profile:", error);
+        res.status(500).json({ message: "Server error", error: error.message });
+    }
+};
+
+module.exports.verifyToken = async (req, res) => {
+    try {
+        // If we reach here, token is valid (already verified by authMiddleware)
+        res.status(200).json({ 
+            valid: true, 
+            user: req.user 
+        });
+    } catch (error) {
+        res.status(401).json({ 
+            valid: false, 
+            message: 'Invalid token' 
+        });
+    }
+};

@@ -1,134 +1,146 @@
-import { useState, useEffect } from "react";
-import { Document, Page, pdfjs } from 'react-pdf';
-import 'react-pdf/dist/esm/Page/AnnotationLayer.css';
-import 'react-pdf/dist/esm/Page/TextLayer.css';
+import React from 'react';
 
-// Modern worker import for Create React App
-pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`;
+// Helper function to format date from YYYY-MM format to a readable format
+const formatDate = (dateString?: string): string => {
+  if (!dateString) return '';
+  
+  try {
+    const [year, month] = dateString.split('-').map(num => parseInt(num, 10));
+    const date = new Date(year, month - 1);
+    return date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+  } catch (e) {
+    return dateString; // Return the original string if parsing fails
+  }
+};
 
 interface ResumePreviewProps {
-  pdfFile: File | null;
+  resumeData?: {
+    personalInfo?: {
+      name?: string;
+      title?: string;
+      email?: string;
+      phone?: string;
+      location?: string;
+      summary?: string;
+    };
+    experience?: Array<{
+      id: string;
+      title: string;
+      company: string;
+      startDate?: string;
+      endDate?: string;
+      location?: string;
+      description: string;
+    }>;
+    education?: Array<{
+      id: string;
+      degree: string;
+      field: string;
+      institution: string;
+      startDate?: string;
+      endDate?: string;
+      location?: string;
+      description?: string;
+    }>;
+    skills?: Array<{
+      id: string;
+      name: string;
+      level: string;
+    }>;
+  };
+  template?: {
+    id: string;
+    name: string;
+    thumbnail: string;
+    category?: string;
+  };
+  onUpdate: (data: any) => void;
 }
 
-export default function ResumePreview({ pdfFile }: ResumePreviewProps) {
-  const [numPages, setNumPages] = useState<number | null>(null);
-  const [pageWidth, setPageWidth] = useState(800);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [fileUrl, setFileUrl] = useState<string | null>(null);
-
-  // Create object URL when file changes
-  useEffect(() => {
-    if (pdfFile) {
-      const url = URL.createObjectURL(pdfFile);
-      setFileUrl(url);
-      return () => URL.revokeObjectURL(url); // Clean up on unmount
-    } else {
-      setFileUrl(null);
-    }
-  }, [pdfFile]);
-
-  // Adjust PDF width based on container size
-  useEffect(() => {
-    const updateWidth = () => {
-      const container = document.querySelector('.pdf-container');
-      if (container) {
-        setPageWidth(Math.min(container.clientWidth - 40, 800));
-      }
-    };
-
-    updateWidth();
-    window.addEventListener('resize', updateWidth);
-    return () => window.removeEventListener('resize', updateWidth);
-  }, []);
-
-  function onDocumentLoadSuccess({ numPages }: { numPages: number }) {
-    setNumPages(numPages);
-    setLoading(false);
-  }
-
-  function onDocumentLoadError(error: Error) {
-    console.error("PDF load error:", error);
-    setError("Failed to load PDF document");
-    setLoading(false);
-  }
-
-  if (loading && !error) {
+export default function ResumePreview({ resumeData, template, onUpdate }: ResumePreviewProps) {
+  if (!resumeData) {
     return (
       <div className="flex items-center justify-center h-full">
-        <div className="text-center">
-          <p>Loading PDF document...</p>
-        </div>
+        <p>No resume data available</p>
       </div>
     );
   }
 
-  if (error) {
-    return (
-      <div className="flex items-center justify-center h-full">
-        <div className="text-center text-red-500">
-          <p>{error}</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (!pdfFile || !fileUrl) {
-    return (
-      <div className="flex items-center justify-center h-full">
-        <div className="text-center">
-          <p>No PDF document selected</p>
-        </div>
-      </div>
-    );
-  }
+  const { personalInfo = {}, experience = [], education = [], skills = [] } = resumeData;
 
   return (
-    <div className="pdf-container flex flex-col h-full p-4 bg-gray-50">
-      <div className="flex-1 overflow-auto flex justify-center">
-        <div className="bg-white p-4 shadow-md rounded-lg">
-          <Document
-            file={fileUrl}
-            onLoadSuccess={onDocumentLoadSuccess}
-            onLoadError={onDocumentLoadError}
-            loading={
-              <div className="flex items-center justify-center h-64">
-                <p>Loading PDF document...</p>
+    <div className="bg-white text-black p-8 shadow-lg max-w-4xl mx-auto">
+      {/* Header / Personal Info */}
+      <header className="text-center mb-8">
+        <h1 className="text-3xl font-bold mb-2">{personalInfo?.name || 'Your Name'}</h1>
+        <p className="text-xl text-gray-600 mb-2">{personalInfo?.title || 'Professional Title'}</p>
+        <div className="text-sm text-gray-600 space-y-1">
+          {personalInfo?.email && <p>{personalInfo.email}</p>}
+          {personalInfo?.phone && <p>{personalInfo.phone}</p>}
+          {personalInfo?.location && <p>{personalInfo.location}</p>}
+        </div>
+        {personalInfo?.summary && (
+          <p className="mt-4 text-sm text-gray-700">{personalInfo.summary}</p>
+        )}
+      </header>
+
+      {/* Experience Section */}
+      {experience?.length > 0 && (
+        <section className="mb-8">
+          <h2 className="text-2xl font-bold text-primary mb-4 border-b pb-2">Experience</h2>
+          <div className="space-y-6">
+            {experience.map((exp) => exp && (
+              <div key={exp.id} className="mb-4">
+                <h3 className="text-lg font-semibold">{exp.title}</h3>
+                <p className="text-gray-600">{exp.company}</p>
+                <p className="text-sm text-gray-500">
+                  {exp.startDate && formatDate(exp.startDate)} {exp.endDate && `- ${formatDate(exp.endDate)}`}
+                </p>
+                {exp.location && <p className="text-sm text-gray-500">{exp.location}</p>}
+                <p className="mt-2 text-gray-700">{exp.description}</p>
               </div>
-            }
-            error={
-              <div className="text-red-500 p-4">
-                Failed to load PDF template
-              </div>
-            }
-            options={{
-              cMapUrl: `https://unpkg.com/pdfjs-dist@${pdfjs.version}/cmaps/`,
-              cMapPacked: true,
-            }}
-          >
-            {Array.from(new Array(numPages), (el, index) => (
-              <div key={`page_${index + 1}`} className="mb-4 last:mb-0">
-                <Page
-                  pageNumber={index + 1}
-                  width={pageWidth}
-                  loading={
-                    <div className="flex items-center justify-center h-64">
-                      <p>Loading page {index + 1}...</p>
-                    </div>
-                  }
-                  renderTextLayer={false}
-                  renderAnnotationLayer={false}
-                />
-                {numPages && numPages > 1 && (
-                  <div className="text-center text-sm text-gray-500 mt-2">
-                    Page {index + 1} of {numPages}
-                  </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* Education Section */}
+      {education?.length > 0 && (
+        <section className="mb-8">
+          <h2 className="text-2xl font-bold text-primary mb-4 border-b pb-2">Education</h2>
+          <div className="space-y-4">
+            {education.map((edu) => edu && (
+              <div key={edu.id} className="mb-4">
+                <h3 className="text-lg font-semibold">{edu.degree}</h3>
+                <p className="text-gray-600">{edu.field}</p>
+                <p className="text-gray-600">{edu.institution}</p>
+                <p className="text-sm text-gray-500">
+                  {edu.startDate && formatDate(edu.startDate)} {edu.endDate && `- ${formatDate(edu.endDate)}`}
+                </p>
+                {edu.location && <p className="text-sm text-gray-500">{edu.location}</p>}
+                {edu.description && (
+                  <p className="mt-2 text-gray-700">{edu.description}</p>
                 )}
               </div>
             ))}
-          </Document>
-        </div>
-      </div>
+          </div>
+        </section>
+      )}
+
+      {/* Skills Section */}
+      {skills?.length > 0 && (
+        <section>
+          <h2 className="text-2xl font-bold text-primary mb-4 border-b pb-2">Skills</h2>
+          <div className="grid grid-cols-2 gap-4">
+            {skills.map((skill) => skill && (
+              <div key={skill.id} className="flex items-center justify-between">
+                <span className="text-gray-700">{skill.name}</span>
+                <span className="text-sm text-gray-500">{skill.level}</span>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
     </div>
   );
 }

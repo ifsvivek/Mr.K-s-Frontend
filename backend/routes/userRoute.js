@@ -52,6 +52,17 @@ router.post(
 
 router.get('/profile', authMiddleware.authUser, userController.getUserProfile);
 
+router.patch(
+  "/profile",
+  authMiddleware.authUser,
+  [
+    body("email").isEmail().optional().withMessage("Invalid Email"),
+    body("name").isLength({ min: 3 }).optional().withMessage("Name should be at least 3 characters long"),
+    body("phone").isLength({ min: 10, max: 10 }).optional().withMessage("Phone number should be 10 digits long"),
+  ],
+  userController.updateUserProfile
+);
+
 router.get('/logout', authMiddleware.authUser, userController.logoutUser);
 
 router.get('/auth/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
@@ -76,5 +87,7 @@ router.get('/auth/linkedin/callback', passport.authenticate('linkedin', { sessio
 res.redirect('http://localhost:5173/dashboard');
 });
 
+// Verify token
+router.get('/verify-token', authMiddleware.authUser, userController.verifyToken);
 
 module.exports = router;

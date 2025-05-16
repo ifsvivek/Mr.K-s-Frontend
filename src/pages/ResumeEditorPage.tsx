@@ -24,30 +24,57 @@ interface ResumeData {
   id: string;
   personalInfo: {
     name: string;
+    title: string;
     email: string;
     phone: string;
+    location: string;
     summary: string;
   };
   experience: Array<{
     id: string;
     title: string;
     company: string;
-    duration: string;
+    location?: string;
+    startDate: string;
+    endDate: string;
     description: string;
   }>;
   education: Array<{
     id: string;
     degree: string;
+    field: string;
     institution: string;
-    year: string;
+    location?: string;
+    startDate: string;
+    endDate: string;
+    description: string;
   }>;
-  skills: string[];
+  skills: Array<{
+    id: string;
+    name: string;
+    level: string;
+  }>;
+  projects?: Array<{
+    id: string;
+    title: string;
+    description: string;
+    link?: string;
+  }>;
+  certifications?: Array<{
+    id: string;
+    name: string;
+    issuer: string;
+    date: string;
+    description: string;
+  }>;
 }
 
-interface AISuggestion {
+interface SuggestionItem {
+  id: string;
+  text: string;
   section: string;
-  field?: string;
-  itemId?: string;
+  field: string | null;
+  itemId: string | null;
   improvement: string;
 }
 
@@ -65,20 +92,51 @@ export default function ResumeEditorPage() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [templatesRes, resumeRes] = await Promise.all([
-          axios.get("http://localhost:5000/api/templateFile/all", {
-            withCredentials: true,
-          }),
-          resumeId 
-            ? axios.get(`http://localhost:5000/api/resumes/${resumeId}`, {
-                withCredentials: true,
-              })
-            : Promise.resolve({ data: createDefaultResume() }),
-        ]);
-
+        // Get all templates
+        const templatesRes = await axios.get("http://localhost:5000/api/templateFile/all", {
+          withCredentials: true,
+        });
         setTemplates(templatesRes.data);
-        setCurrentResume(resumeRes.data);
+        
+        // Get resume data if resumeId exists
+        if (resumeId) {
+          try {
+            const resumeRes = await axios.get(`http://localhost:5000/api/resumeFile/singleResume/${resumeId}`, {
+              withCredentials: true,
+            });
+            
+            console.log("Resume data from API:", resumeRes.data);
+            
+            // Make sure we have the correct structure before setting current resume
+            const resumeData = {
+              id: resumeRes.data._id || resumeRes.data.id || "new-resume",
+              personalInfo: resumeRes.data.data?.personalInfo || {},
+              experience: resumeRes.data.data?.experience || [],
+              education: resumeRes.data.data?.education || [],
+              skills: resumeRes.data.data?.skills || [],
+              projects: resumeRes.data.data?.projects || [],
+              certifications: resumeRes.data.data?.certifications || []
+            };
+            
+            console.log("Processed resume data:", resumeData);
+            setCurrentResume(resumeData);
+            
+            // If resume data has a title, set it
+            if (resumeRes.data?.title) {
+              setResumeTitle(resumeRes.data.title);
+            }
+          } catch (error) {
+            console.error("Error fetching resume:", error);
+            // If resume not found, create a default one
+            setCurrentResume(createDefaultResume());
+            toast.error("Resume not found, creating a new one");
+          }
+        } else {
+          // If no resumeId, create a default resume
+          setCurrentResume(createDefaultResume());
+        }
 
+        // Set template if provided in URL
         const templateId = searchParams.get("template");
         if (templateId) {
           const template = templatesRes.data.find((t: { _id: string; }) => t._id === templateId);
@@ -86,6 +144,9 @@ export default function ResumeEditorPage() {
             setCurrentTemplate(template);
             toast.success(`${template.title} template loaded`);
           }
+        } else if (templatesRes.data.length > 0) {
+          // Set first template as default if none is specified
+          setCurrentTemplate(templatesRes.data[0]);
         }
       } catch (err) {
         toast.error("Failed to load data");
@@ -101,14 +162,55 @@ export default function ResumeEditorPage() {
   const createDefaultResume = (): ResumeData => ({
     id: "new-resume",
     personalInfo: {
-      name: "",
-      email: "",
-      phone: "",
-      summary: "",
+      name: "Your Name",
+      title: "Professional Title",
+      email: "email@example.com",
+      phone: "+91 9876543210",
+      location: "City, State",
+      summary: "Professional summary highlighting your skills and experience.",
     },
-    experience: [],
-    education: [],
-    skills: [],
+    experience: [{
+      id: "exp-1",
+      title: "Job Title",
+      company: "Company Name",
+      location: "City, State",
+      startDate: "2020-01",
+      endDate: "2023-01",
+      description: "Description of your responsibilities and achievements."
+    }],
+    education: [{
+      id: "edu-1",
+      degree: "Degree",
+      field: "Field of Study",
+      institution: "Institution Name",
+      location: "City, State",
+      startDate: "2016-08",
+      endDate: "2020-05",
+      description: "Relevant coursework or achievements."
+    }],
+    skills: [{
+      id: "skill-1",
+      name: "Technical Skill",
+      level: "Advanced"
+    },
+    {
+      id: "skill-2",
+      name: "Soft Skill",
+      level: "Intermediate"
+    }],
+    projects: [{
+      id: "proj-1",
+      title: "Project Name",
+      description: "A brief description of the project and your role.",
+      link: "https://example.com/project"
+    }],
+    certifications: [{
+      id: "cert-1",
+      name: "Certification Name",
+      issuer: "Issuing Organization",
+      date: "2022-01",
+      description: "A brief description of the certification."
+    }],
   });
 
   const handleTemplateChange = (templateId: string) => {
@@ -120,9 +222,12 @@ export default function ResumeEditorPage() {
   };
 
   const generateResumePDF = async (): Promise<Blob> => {
+    console.log("Current template in PDF generation:", currentTemplate);
     const resumeElement = document.querySelector(".resume-preview-container");
     if (!resumeElement) throw new Error("Resume element not found");
-
+    
+    console.log("Resume element found:", resumeElement);
+    
     const canvas = await html2canvas(resumeElement as HTMLElement, {
       scale: 2,
       useCORS: true,
@@ -159,14 +264,25 @@ export default function ResumeEditorPage() {
       
       // First save the resume data
       const resumeDataUrl = resumeId 
-        ? `http://localhost:5000/api/resumes/${resumeId}`
-        : "http://localhost:5000/api/resumes";
+        ? `http://localhost:5000/api/resumeFile/update/${resumeId}`
+        : "http://localhost:5000/api/resumeFile/save";
       
       const method = resumeId ? "put" : "post";
       
       const resumeResponse = await axios[method](
         resumeDataUrl, 
-        { ...currentResume, title: resumeTitle },
+        {
+          title: resumeTitle,
+          templateId: currentTemplate._id, // Changed to templateId as expected by backend
+          data: { // Structure the data property as expected by backend
+            personalInfo: currentResume.personalInfo,
+            experience: currentResume.experience,  
+            education: currentResume.education,
+            skills: currentResume.skills,
+            projects: currentResume.projects || [],
+            certifications: currentResume.certifications || []
+          }
+        },
         { withCredentials: true }
       );
       
@@ -176,6 +292,16 @@ export default function ResumeEditorPage() {
       const formData = new FormData();
       formData.append("file", pdfBlob, `${resumeTitle.replace(/\s+/g, '_')}.pdf`);
       formData.append("title", resumeTitle);
+      formData.append("templateId", currentTemplate._id); // Changed to templateId
+      // Structure data as expected by backend
+      formData.append("data", JSON.stringify({
+        personalInfo: currentResume.personalInfo,
+        experience: currentResume.experience,
+        education: currentResume.education,
+        skills: currentResume.skills,
+        projects: currentResume.projects || [],
+        certifications: currentResume.certifications || []
+      }));
 
       // Upload the PDF to S3
       const uploadResponse = await axios.post(
@@ -196,22 +322,23 @@ export default function ResumeEditorPage() {
       
       toast.success("Resume saved and PDF uploaded successfully");
       return uploadResponse.data;
-    } catch (err) {
-      console.error("Save error:", err);
+    } catch (error: any) {
+      console.error("Save error:", error);
       toast.error("Failed to save resume");
-      if (err.response) {
-        console.error("Response data:", err.response.data);
-        console.error("Response status:", err.response.status);
+      if (error.response) {
+        console.error("Response data:", error.response.data);
+        console.error("Response status:", error.response.status);
       }
     } finally {
       setIsSaving(false);
     }
   };
 
-  const handleApplySuggestion = (suggestion: AISuggestion) => {
+  const handleApplySuggestion = (suggestion: SuggestionItem) => {
     if (!currentResume) return;
     // Implementation of applying AI suggestions
-    // ... (same as your previous implementation)
+    console.log("Applying suggestion:", suggestion);
+    // You can implement the suggestion application logic here
   };
 
   const handleResumeUpdate = (updatedData: ResumeData) => {
@@ -314,6 +441,7 @@ export default function ResumeEditorPage() {
                           id: currentTemplate._id,
                           name: currentTemplate.title,
                           thumbnail: currentTemplate.path,
+                          category: "Modern" // Default to Modern template since the API doesn't provide category
                         }}
                         onUpdate={handleResumeUpdate}
                       />

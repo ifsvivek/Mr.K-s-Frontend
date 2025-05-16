@@ -258,7 +258,7 @@ function generateFakeSuggestions(resumeData: ResumeData): SuggestionItem[] {
   const suggestions: SuggestionItem[] = [];
 
   // Summary suggestions
-  if (resumeData.personalInfo.summary) {
+  if (resumeData?.personalInfo?.summary) {
     if (resumeData.personalInfo.summary.length < 200) {
       suggestions.push({
         id: `sugg-${Date.now()}-1`,
@@ -270,7 +270,7 @@ function generateFakeSuggestions(resumeData: ResumeData): SuggestionItem[] {
       });
     }
 
-    if (!resumeData.personalInfo.summary.includes('skills') && !resumeData.personalInfo.summary.includes('expertise')) {
+    if (!resumeData?.personalInfo?.summary?.includes('skills') && !resumeData?.personalInfo?.summary?.includes('expertise')) {
       suggestions.push({
         id: `sugg-${Date.now()}-2`,
         section: 'summary',
@@ -283,7 +283,7 @@ function generateFakeSuggestions(resumeData: ResumeData): SuggestionItem[] {
   }
 
   // Experience suggestions
-  resumeData.experience.forEach((exp, index) => {
+  resumeData.experience?.forEach((exp, index) => {
     if (exp.description.length < 100) {
       suggestions.push({
         id: `sugg-${Date.now()}-exp-${index}`,
@@ -308,7 +308,7 @@ function generateFakeSuggestions(resumeData: ResumeData): SuggestionItem[] {
   });
 
   // Education suggestions
-  resumeData.education.forEach((edu, index) => {
+  resumeData.education?.forEach((edu, index) => {
     if (!edu.description || edu.description.length < 50) {
       suggestions.push({
         id: `sugg-${Date.now()}-edu-${index}`,
@@ -322,7 +322,7 @@ function generateFakeSuggestions(resumeData: ResumeData): SuggestionItem[] {
   });
 
   // Skills suggestions
-  if (resumeData.skills.length < 8) {
+  if ((resumeData.skills?.length ?? 0) < 8) {
     suggestions.push({
       id: `sugg-${Date.now()}-skills`,
       section: 'skills',
@@ -333,9 +333,9 @@ function generateFakeSuggestions(resumeData: ResumeData): SuggestionItem[] {
     });
   }
 
-  const techSkills = resumeData.skills.filter(skill =>
+  const techSkills = resumeData.skills?.filter(skill =>
     ['javascript', 'react', 'node', 'angular', 'vue', 'python', 'java', 'c#', 'html', 'css'].includes(skill.name.toLowerCase())
-  );
+  ) ?? [];
 
   if (techSkills.length < 3) {
     suggestions.push({
