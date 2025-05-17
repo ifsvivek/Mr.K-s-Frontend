@@ -113,7 +113,7 @@ export default function RootLayout() {
     }
   ];
 
-  const MotionButton = motion(Button);
+  const MotionButton = motion.create(Button);
 
   const UserProfileDropdown = () => {
     const currentUser = role === "admin" ? admin : user;

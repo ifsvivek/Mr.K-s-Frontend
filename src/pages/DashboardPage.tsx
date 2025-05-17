@@ -53,7 +53,7 @@ interface UserProfile {
   phone?: string;
 }
 
-export default function DashboardPage() {
+function DashboardPage() {
   const navigate = useNavigate();
   const { user, token, logout } = useAuthContext();
 
@@ -73,21 +73,20 @@ export default function DashboardPage() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [resumesRes, profileRes, filesRes] = await Promise.all([
-          axios.get("http://localhost:5000/api/resume/getAll", {
+        // We're just using resumeFile endpoint for both data types for now
+        const [resumeFilesRes, profileRes] = await Promise.all([
+          axios.get("http://localhost:5000/api/resumeFile/all", {
             headers: { Authorization: `Bearer ${token}` },
           }),
           axios.get("http://localhost:5000/api/user/profile", {
             headers: { Authorization: `Bearer ${token}` },
-          }),
-          axios.get("http://localhost:5000/api/resumeFile/all", {
-            headers: { Authorization: `Bearer ${token}` },
           })
         ]);
         
-        setResumes(resumesRes.data.resumes);
-        setProfile(profileRes.data.user);
-        setResumeFiles(filesRes.data);
+        // For now, use the same data for both resumes and resumeFiles
+        setResumes(Array.isArray(resumeFilesRes.data) ? resumeFilesRes.data : []);
+        setProfile(profileRes.data);
+        setResumeFiles(resumeFilesRes.data);
       } catch (err) {
         toast.error("Failed to fetch data");
       } finally {
@@ -101,9 +100,10 @@ export default function DashboardPage() {
   const handleCreateResume = async () => {
     try {
       const res = await axios.post(
-        "http://localhost:5000/api/resume/create",
+        "http://localhost:5000/api/resumeFile/save",
         {
           templateId: "65f1d3e8e0a7d3b1f4f5d8a9", // Replace with a valid template ID
+          title: "Untitled Resume",
           data: {
             personalInfo: {
               name: "Untitled Resume",
@@ -116,8 +116,9 @@ export default function DashboardPage() {
         }
       );
       
-      setResumes([...resumes, res.data.newResume]);
-      navigate(`/editor/${res.data.newResume._id}`);
+      const newResume = res.data.resume;
+      setResumes([...resumes, newResume]);
+      navigate(`/editor/${newResume._id}`);
       toast.success("New resume created");
     } catch (err) {
       console.error("Error creating resume:", err);
@@ -152,7 +153,8 @@ export default function DashboardPage() {
 
   const confirmDelete = async () => {
     try {
-      await axios.delete(`http://localhost:5000/api/resume/delete/${resumeToDelete}`, {
+      // Changed to use resumeFile endpoint instead of resume
+      await axios.delete(`http://localhost:5000/api/resumeFile/delete/${resumeToDelete}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       setResumes(resumes.filter(r => r._id !== resumeToDelete));
@@ -164,10 +166,10 @@ export default function DashboardPage() {
   };
 
   const handleRenameClick = (id: string) => {
-    const resume = resumes.find(r => r._id === id);
+    const resume = resumes.find(r => r?._id === id);
     if (resume) {
       setResumeToRename(id);
-      setNewName(resume.data?.personalInfo?.name || '');
+      setNewName(resume?.data?.personalInfo?.name || '');
       setRenameDialogOpen(true);
     }
   };
@@ -178,13 +180,14 @@ export default function DashboardPage() {
         data: {
           personalInfo: {
             name: newName.trim(),
-            title: resumes.find(r => r._id === resumeToRename)?.data?.personalInfo?.title || '',
+            title: resumes.find(r => r?._id === resumeToRename)?.data?.personalInfo?.title || '',
           },
         },
       };
 
-      const res = await axios.patch(
-        `http://localhost:5000/api/resume/update/${resumeToRename}`,
+      // Changed to use resumeFile endpoint instead of resume
+      const res = await axios.put(
+        `http://localhost:5000/api/resumeFile/update/${resumeToRename}`,
         updatedData,
         {
           headers: { Authorization: `Bearer ${token}` },
@@ -377,14 +380,14 @@ export default function DashboardPage() {
                 </div>
               ) : (
                 <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-2">
-                  {resumes.map((resume) => (
+                  {resumes.map((resume) => resume && (
                     <Card key={resume._id}>
                       <CardHeader className="pb-2">
                         <CardTitle className="truncate">
-                          {resume.data?.personalInfo?.name || "Untitled Resume"}
+                          {resume?.data?.personalInfo?.name || "Untitled Resume"}
                         </CardTitle>
                         <CardDescription>
-                          {resume.data?.personalInfo?.title || "No Title"}
+                          {resume?.data?.personalInfo?.title || "No Title"}
                         </CardDescription>
                       </CardHeader>
                       <CardContent className="h-32 flex items-center justify-center bg-muted/30">
@@ -511,3 +514,5 @@ export default function DashboardPage() {
     </div>
   );
 }
+
+export default DashboardPage;

@@ -31,6 +31,5 @@ const resumeSchema = new mongoose.Schema({
   }
 );
 
-const Resume = mongoose.model("Resume", resumeSchema);
-
-module.exports = Resume;
+// Export the model - Only create model if it doesn't already exist
+module.exports = mongoose.models.Resume || mongoose.model("Resume", resumeSchema);

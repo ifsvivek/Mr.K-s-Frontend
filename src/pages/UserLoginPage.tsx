@@ -23,9 +23,12 @@ export default function UserLoginPage() {
       );
 
       const { user, token } = response.data;
+      loginAsUser(user, token);
 
-      loginAsUser(user, token); // Save to context and localStorage
-      navigate("/dashboard"); // Redirect after login
+      // Get redirect URL from localStorage or default to dashboard
+      const redirectUrl = localStorage.getItem('redirectUrl') || '/dashboard';
+      localStorage.removeItem('redirectUrl'); // Clean up
+      navigate(redirectUrl);
     } catch (err) {
       alert("Invalid credentials");
       console.error(err);
